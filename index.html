@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>전체 원소 주기율표</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div id="tooltip" class="tooltip"></div>
+  <div>
+    <input id="symbolInput" placeholder="원소 기호 (예: H)">
+    <input id="groupInput" placeholder="족 번호 (예: 1)">
+    <input id="periodInput" placeholder="주기 번호 (예: 2)">
+    <button onclick="searchElement()">검색</button>
+  </div>
+
+  <pre id="result"></pre>
+
+<table>
+  <caption>전체 원소 주기율표 (족 &amp; 주기 정확한 배치)</caption>
+  <thead>
+    <tr>
+      <th>주기\족</th>
+      <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- 1주기 -->
+    <tr>
+      <th>1</th>
+      <td class="alkali-metal">H<br>수소</td>
+      <td class="empty" colspan="16"></td>
+      <td class="noble-gas nonmetal">He<br>헬륨</td>
+    </tr>
+
+    <!-- 2주기 -->
+    <tr>
+      <th>2</th>
+      <td class="alkali-metal">Li<br>리튬</td>
+      <td class="alkaline-earth-metal">Be<br>베릴륨</td>
+      <td colspan="10" class="empty"></td>
+      <td class="metalloid">B<br>붕소</td>
+      <td class="nonmetal">C<br>탄소</td>
+      <td class="nonmetal">N<br>질소</td>
+      <td class="nonmetal">O<br>산소</td>
+      <td class="halogen">F<br>플루오린</td>
+      <td class="noble-gas nonmetal">Ne<br>네온</td>
+    </tr>
+
+    <!-- 3주기 -->
+    <tr>
+      <th>3</th>
+      <td class="alkali-metal">Na<br>나트륨</td>
+      <td class="alkaline-earth-metal">Mg<br>마그네슘</td>
+      <td colspan="10" class="empty"></td>
+      <td class="post-transition-metal">Al<br>알루미늄</td>
+      <td class="metalloid">Si<br>규소</td>
+      <td class="nonmetal">P<br>인</td>
+      <td class="nonmetal">S<br>황</td>
+      <td class="halogen">Cl<br>염소</td>
+      <td class="noble-gas nonmetal">Ar<br>아르곤</td>
+    </tr>
+
+    <!-- 4주기 -->
+    <tr>
+      <th>4</th>
+      <td class="alkali-metal">K<br>칼륨</td>
+      <td class="alkaline-earth-metal">Ca<br>칼슘</td>
+      <td class="transition-metal">Sc<br>스칸듐</td>
+      <td class="transition-metal">Ti<br>티타늄</td>
+      <td class="transition-metal">V<br>바나듐</td>
+      <td class="transition-metal">Cr<br>크롬</td>
+      <td class="transition-metal">Mn<br>망가니즈</td>
+      <td class="transition-metal">Fe<br>철</td>
+      <td class="transition-metal">Co<br>코발트</td>
+      <td class="transition-metal">Ni<br>니켈</td>
+      <td class="transition-metal">Cu<br>구리</td>
+      <td class="transition-metal">Zn<br>아연</td>
+      <td class="post-transition-metal">Ga<br>갈륨</td>
+      <td class="metalloid">Ge<br>저마늄</td>
+      <td class="metalloid">As<br>비소</td>
+      <td class="nonmetal">Se<br>셀레늄</td>
+      <td class="halogen">Br<br>브로민</td>
+      <td class="noble-gas nonmetal">Kr<br>크립톤</td>
+    </tr>
+
+    <!-- 5주기 -->
+    <tr>
+      <th>5</th>
+      <td class="alkali-metal">Rb<br>루비듐</td>
+      <td class="alkaline-earth-metal">Sr<br>스트론튬</td>
+      <td class="transition-metal">Y<br>이트륨</td>
+      <td class="transition-metal">Zr<br>지르코늄</td>
+      <td class="transition-metal">Nb<br>나이오븀</td>
+      <td class="transition-metal">Mo<br>몰리브데넘</td>
+      <td class="transition-metal">Tc<br>테크네튬</td>
+      <td class="transition-metal">Ru<br>루테늄</td>
+      <td class="transition-metal">Rh<br>로듐</td>
+      <td class="transition-metal">Pd<br>팔라듐</td>
+      <td class="transition-metal">Ag<br>은</td>
+      <td class="transition-metal">Cd<br>카드뮴</td>
+      <td class="post-transition-metal">In<br>인듐</td>
+      <td class="post-transition-metal">Sn<br>주석</td>
+      <td class="metalloid">Sb<br>안티모니</td>
+      <td class="metalloid">Te<br>텔루륨</td>
+      <td class="halogen">I<br>아이오딘</td>
+      <td class="noble-gas nonmetal">Xe<br>크세논</td>
+    </tr>
+
+    <!-- 6주기 -->
+    <tr>
+      <th>6</th>
+      <td class="alkali-metal">Cs<br>세슘</td>
+      <td class="alkaline-earth-metal">Ba<br>바륨</td>
+      <td class="lanthanide">La<br>란타넘</td>
+      <td class="transition-metal">Hf<br>하프늄</td>
+      <td class="transition-metal">Ta<br>탄탈럼</td>
+      <td class="transition-metal">W<br>텅스텐</td>
+      <td class="transition-metal">Re<br>레늄</td>
+      <td class="transition-metal">Os<br>오스뮴</td>
+      <td class="transition-metal">Ir<br>이리듐</td>
+      <td class="transition-metal">Pt<br>백금</td>
+      <td class="transition-metal">Au<br>금</td>
+      <td class="transition-metal">Hg<br>수은</td>
+      <td class="post-transition-metal">Tl<br>탈륨</td>
+      <td class="post-transition-metal">Pb<br>납</td>
+      <td class="post-transition-metal">Bi<br>비스무트</td>
+      <td class="post-transition-metal">Po<br>폴로늄</td>
+      <td class="halogen">At<br>아스타틴</td>
+      <td class="noble-gas nonmetal">Rn<br>라돈</td>
+    </tr>
+
+    <!-- 7주기 -->
+    <tr>
+      <th>7</th>
+      <td class="alkali-metal">Fr<br>프랑슘</td>
+      <td class="alkaline-earth-metal">Ra<br>라듐</td>
+      <td class="actinide">Ac<br>악티늄</td>
+      <td class="transition-metal">Rf<br>러더퍼듐</td>
+      <td class="transition-metal">Db<br>더브늄</td>
+      <td class="transition-metal">Sg<br>시보귬</td>
+      <td class="transition-metal">Bh<br>보륨</td>
+      <td class="transition-metal">Hs<br>하슘</td>
+      <td class="transition-metal">Mt<br>마이트너륨</td>
+      <td class="transition-metal">Ds<br>다름슈타튬</td>
+      <td class="transition-metal">Rg<br>뢴트게늄</td>
+      <td class="transition-metal">Cn<br>코페르니슘</td>
+      <td class="post-transition-metal">Nh<br>니호늄</td>
+      <td class="post-transition-metal">Fl<br>플레로븀</td>
+      <td class="post-transition-metal">Mc<br>모스코븀</td>
+      <td class="post-transition-metal">Lv<br>리버모륨</td>
+      <td class="halogen">Ts<br>테네신</td>
+      <td class="noble-gas nonmetal">Og<br>오가네손</td>
+    </tr>
+  </tbody>
+
+  <tfoot>
+    <tr><th colspan="18" style="background:#fff; text-align:left;">란타넘족 (6주기 f-블록)</th></tr>
+    <tr>
+      <td colspan="2" class="empty"></td>
+      <td class="lanthanide">La<br>란타넘</td>
+      <td class="lanthanide">Ce<br>세륨</td>
+      <td class="lanthanide">Pr<br>프라세오디뮴</td>
+      <td class="lanthanide">Nd<br>네오디뮴</td>
+      <td class="lanthanide">Pm<br>프로메튬</td>
+      <td class="lanthanide">Sm<br>사마륨</td>
+      <td class="lanthanide">Eu<br>유로퓸</td>
+      <td class="lanthanide">Gd<br>가돌리늄</td>
+      <td class="lanthanide">Tb<br>터븀</td>
+      <td class="lanthanide">Dy<br>디스프로슘</td>
+      <td class="lanthanide">Ho<br>홀뮴</td>
+      <td class="lanthanide">Er<br>어븀</td>
+      <td class="lanthanide">Tm<br>툴륨</td>
+      <td class="lanthanide">Yb<br>이터븀</td>
+      <td class="lanthanide">Lu<br>루테튬</td>
+      <td class="empty"></td>
+    </tr>
+    <tr><th colspan="18" style="background:#fff; text-align:left;">악티늄족 (7주기 f-블록)</th></tr>
+    <tr>
+      <td colspan="2" class="empty"></td>
+      <td class="actinide">Ac<br>악티늄</td>
+      <td class="actinide">Th<br>토륨</td>
+      <td class="actinide">Pa<br>프로트악티늄</td>
+      <td class="actinide">U<br>우라늄</td>
+      <td class="actinide">Np<br>넵투늄</td>
+      <td class="actinide">Pu<br>플루토늄</td>
+      <td class="actinide">Am<br>아메리슘</td>
+      <td class="actinide">Cm<br>퀴륨</td>
+      <td class="actinide">Bk<br>버클륨</td>
+      <td class="actinide">Cf<br>캘리포늄</td>
+      <td class="actinide">Es<br>아인슈타이늄</td>
+      <td class="actinide">Fm<br>페르뮴</td>
+      <td class="actinide">Md<br>멘델레븀</td>
+      <td class="actinide">No<br>노벨륨</td>
+      <td class="actinide">Lr<br>로렌슘</td>
+      <td class="empty"></td>
+    </tr>
+  </tfoot>
+</table>
+<script src="{{ url_for('static', filename='js/project.js') }}"></script>
+</body>
+</html>
