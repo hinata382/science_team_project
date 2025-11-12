@@ -139,8 +139,9 @@ def search_element():
 
     results = []
 
+    # 1️⃣ 원소 기호 검색
     if symbol:
-        symbol = symbol.capitalize()  # 예:'fe' = 'Fe'
+        symbol = symbol.capitalize()  # 예: 'fe' -> 'Fe'
         if symbol in elements_dict:
             info = elements_dict[symbol]
             return jsonify({
@@ -152,6 +153,7 @@ def search_element():
         else:
             return jsonify({"error": f"'{symbol}'은(는) 알 수 없는 원소입니다."}), 404
 
+    # 2️⃣ 족/주기 검색
     for s, info in elements_dict.items():
         if (not group or str(info["group"]) == group) and (not period or str(info["period"]) == period):
             results.append({
@@ -168,4 +170,4 @@ def search_element():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
