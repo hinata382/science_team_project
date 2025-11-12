@@ -1,73 +1,75 @@
 body {
-  font-family: Arial, sans-serif;
-  margin: 20px;
-  position: relative;
-}
-
-table {
-  border-collapse: collapse;
-  margin: 0 auto;
-  font-size: 12px;
-  width: 100%;
-  max-width: 1100px;
-  cursor: default;
-}
-
-th, td {
-  border: 1px solid #999;
-  width: 55px;
-  height: 55px;
-  text-align: center;
-  vertical-align: middle;
-  padding: 2px 5px;
-  font-weight: normal;
-}
-
-th {
-  background-color: #f4f4f4;
-  font-weight: bold;
-}
-
-.alkali-metal { background-color: #ffcc80; }
-.alkaline-earth-metal { background-color: #ffe0b2; }
-.transition-metal { background-color: #ffd580; }
-.post-transition-metal { background-color: #ffddb3; }
-.metalloid { background-color: #d1d17b; }
-.nonmetal { background-color: #a0d8f0; }
-.halogen { background-color: #ffb3b3; }
-.noble-gas { background-color: #b0e0e6; }
-.lanthanide { background-color: #d6b3ff; }
-.actinide { background-color: #b3d9ff; }
-
-.empty {
-  background-color: #fff;
-  border: none;
-}
-
-caption {
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.tooltip {
-  visibility: hidden;
-  opacity: 0;
-  position: absolute;
-  background: #333;
-  color: #fff;
-  font-size: 12px;
-  padding: 5px 8px;
-  border-radius: 5px;
-  transition: opacity 0.2s;
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 1000;
-}
-
-#result {
-  white-space: pre-wrap;
-  margin-top: 10px;
-  font-size: 14px;
-}
-
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    position: relative; /* ✅ tooltip 위치 기준 */
+  }
+  
+  table {
+    border-collapse: collapse;
+    margin: 0 auto;
+    font-size: 12px;
+    width: 100%;
+    max-width: 1100px;
+    cursor: default;
+  }
+  
+  th, td {
+    border: 1px solid #999;
+    width: 55px;
+    height: 55px;
+    text-align: center;
+    vertical-align: middle;
+    padding: 2px 5px;
+    font-weight: normal;
+  }
+  
+  th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+  }
+  
+  /* ✅ 그룹별 색상 (정상) */
+  .alkali-metal { background-color: #ffcc80; }
+  .alkaline-earth-metal { background-color: #ffe0b2; }
+  .transition-metal { background-color: #ffd580; }
+  .post-transition-metal { background-color: #ffddb3; }
+  .metalloid { background-color: #d1d17b; }
+  .nonmetal { background-color: #a0d8f0; }
+  .halogen { background-color: #ffb3b3; }
+  .noble-gas { background-color: #b0e0e6; }
+  .lanthanide { background-color: #d6b3ff; }
+  .actinide { background-color: #b3d9ff; }
+  
+  .empty {
+    background-color: #fff;
+    border: none;
+  }
+  
+  caption {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  
+  /* ✅ tooltip 관련 (JS 제어 중심) */
+  .tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    background: #333;
+    color: #fff;
+    font-size: 12px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 1000;
+  }
+  
+  /* ✅ 검색 결과 영역 줄바꿈 허용 */
+  #result {
+    white-space: pre-wrap;
+    margin-top: 10px;
+    font-size: 14px;
+  }
