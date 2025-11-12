@@ -11,7 +11,7 @@
     <input id="symbolInput" placeholder="원소 기호 (예: H)">
     <input id="groupInput" placeholder="족 번호 (예: 1)">
     <input id="periodInput" placeholder="주기 번호 (예: 2)">
-    <button onclick="searchElement()">검색</button>
+    <button id="searchBtn">검색</button>
   </div>
 
   <pre id="result"></pre>
@@ -197,6 +197,6 @@
     </tr>
   </tfoot>
 </table>
-<script src="{{ url_for('static', filename='js/project.js') }}"></script>
+<script src="{{ url_for('static', filename='project.js') }}"></script>
 </body>
 </html>
