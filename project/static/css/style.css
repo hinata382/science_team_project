@@ -1,75 +1,196 @@
 body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    position: relative; /* ✅ tooltip 위치 기준 */
+  font-family: 'Inter', Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background-color: #f7f7f7;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* --- App Layout & Responsiveness --- */
+.app-container {
+  display: flex;
+  flex-direction: column; /* 기본은 세로 방향 (모바일 대응) */
+  width: 100%;
+  max-width: 1300px;
+  gap: 20px;
+}
+
+@media (min-width: 1024px) {
+  .app-container {
+      flex-direction: row; /* 데스크톱에서 가로 방향 */
   }
-  
-  table {
-    border-collapse: collapse;
-    margin: 0 auto;
-    font-size: 12px;
-    width: 100%;
-    max-width: 1100px;
-    cursor: default;
-  }
-  
-  th, td {
-    border: 1px solid #999;
-    width: 55px;
-    height: 55px;
-    text-align: center;
-    vertical-align: middle;
-    padding: 2px 5px;
-    font-weight: normal;
-  }
-  
-  th {
-    background-color: #f4f4f4;
-    font-weight: bold;
-  }
-  
-  /* ✅ 그룹별 색상 (정상) */
-  .alkali-metal { background-color: #ffcc80; }
-  .alkaline-earth-metal { background-color: #ffe0b2; }
-  .transition-metal { background-color: #ffd580; }
-  .post-transition-metal { background-color: #ffddb3; }
-  .metalloid { background-color: #d1d17b; }
-  .nonmetal { background-color: #a0d8f0; }
-  .halogen { background-color: #ffb3b3; }
-  .noble-gas { background-color: #b0e0e6; }
-  .lanthanide { background-color: #d6b3ff; }
-  .actinide { background-color: #b3d9ff; }
-  
-  .empty {
-    background-color: #fff;
-    border: none;
-  }
-  
-  caption {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 10px;
-  }
-  
-  /* ✅ tooltip 관련 (JS 제어 중심) */
-  .tooltip {
-    visibility: hidden;
-    opacity: 0;
-    position: absolute;
-    background: #333;
-    color: #fff;
-    font-size: 12px;
-    padding: 5px 8px;
-    border-radius: 5px;
-    transition: opacity 0.2s;
-    pointer-events: none;
-    white-space: nowrap;
-    z-index: 1000;
-  }
-  
-  /* ✅ 검색 결과 영역 줄바꿈 허용 */
-  #result {
-    white-space: pre-wrap;
-    margin-top: 10px;
-    font-size: 14px;
-  }
+}
+
+.table-section {
+  flex: 2; /* 주기율표가 더 넓은 공간을 차지하도록 설정 */
+  min-width: 600px;
+}
+
+.simulation-section {
+  flex: 1; /* 시뮬레이션 영역은 주기율표보다 좁게 설정 */
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 15px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Search Area Styles --- */
+.search-area {
+  background-color: #eef;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.search-area input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-right: 10px;
+  width: 80px;
+  text-align: center;
+}
+
+.search-area button {
+  padding: 8px 15px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.search-area button:hover {
+  background-color: #2980b9;
+}
+
+#result {
+  white-space: pre-wrap;
+  margin-top: 10px;
+  padding: 10px;
+  font-size: 14px;
+  background-color: #f9f9f9;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  min-height: 30px;
+}
+
+/* --- Periodic Table Styles --- */
+table {
+  border-collapse: collapse;
+  margin: 0 auto;
+  font-size: 11px;
+  width: 100%;
+  cursor: pointer; /* 클릭 가능하도록 커서 변경 */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  overflow: hidden; /* 라운드 코너 적용 */
+}
+
+th, td {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  width: 55px;
+  height: 55px;
+  text-align: center;
+  vertical-align: middle;
+  padding: 2px 5px;
+  font-weight: normal;
+  transition: all 0.2s ease-in-out;
+}
+
+td:hover {
+  transform: scale(1.05);
+  z-index: 10;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+th {
+  background-color: #34495e;
+  color: white;
+  font-weight: bold;
+}
+
+/* ✅ 검색 결과 하이라이트 스타일 */
+.highlighted {
+  box-shadow: 0 0 15px 4px #e74c3c; /* 붉은색 테두리 그림자 */
+  border: 2px solid #e74c3c !important;
+  transform: scale(1.05);
+  z-index: 5;
+}
+
+/* ✅ 그룹별 색상 (정상) */
+.alkali-metal { background-color: #ffcc80; }
+.alkaline-earth-metal { background-color: #ffe0b2; }
+.transition-metal { background-color: #ffd580; }
+.post-transition-metal { background-color: #ffddb3; }
+.metalloid { background-color: #d1d17b; }
+.nonmetal { background-color: #a0d8f0; }
+.halogen { background-color: #ffb3b3; }
+.noble-gas { background-color: #b0e0e6; }
+.lanthanide { background-color: #d6b3ff; }
+.actinide { background-color: #b3d9ff; }
+
+.empty {
+  background-color: #fff;
+  border: none;
+}
+
+caption {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #2c3e50;
+}
+
+/* --- Simulation Area Styles --- */
+.simulation-container {
+  width: 100%;
+  /* 캔버스가 이 컨테이너 크기에 맞춰집니다. */
+  aspect-ratio: 1 / 1; 
+  max-width: 400px;
+  margin: 0 auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #ecf0f1; /* 캔버스 배경색 */
+}
+
+#atomCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#atom-info {
+  text-align: center;
+  padding: 10px;
+  min-height: 50px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* --- Tooltip Styles --- */
+.tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  background: #2c3e50;
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: opacity 0.2s, visibility 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}

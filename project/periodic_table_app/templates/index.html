@@ -1,202 +1,724 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<title>전체 원소 주기율표</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전체 원소 주기율표 및 원자 시뮬레이션</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter 폰트 사용을 위한 설정 (Tailwind 기본 폰트) -->
+    <style>
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+            min-height: 100vh;
+        }
+
+        /* --- Custom Styles (Previous CSS Integrated) --- */
+        .app-container {
+            display: flex;
+            flex-direction: column; /* 기본은 세로 방향 (모바일 대응) */
+            width: 100%;
+            max-width: 1300px;
+            gap: 20px;
+            margin: 20px auto;
+            padding: 0 10px;
+        }
+
+        @media (min-width: 1024px) {
+            .app-container {
+                flex-direction: row; /* 데스크톱에서 가로 방향 */
+            }
+        }
+
+        .table-section {
+            flex: 2; /* 주기율표가 더 넓은 공간을 차지하도록 설정 */
+            min-width: 600px;
+        }
+
+        .simulation-section {
+            flex: 1; /* 시뮬레이션 영역은 주기율표보다 좁게 설정 */
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 15px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- Search Area Styles --- */
+        .search-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .search-area input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            width: 100%;
+            max-width: 150px;
+            text-align: center;
+        }
+        @media (min-width: 600px) {
+            .search-area input {
+                width: auto;
+            }
+        }
+
+        .search-area button {
+            padding: 8px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            box-shadow: 0 3px #2980b9;
+        }
+
+        .search-area button:active {
+            box-shadow: 0 0 #2980b9;
+            transform: translateY(3px);
+        }
+
+        #result {
+            white-space: pre-wrap;
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 14px;
+            background-color: #f9f9f9;
+            border: 1px dashed #ccc;
+            border-radius: 6px;
+            min-height: 30px;
+        }
+
+        /* --- Periodic Table Styles --- */
+        table {
+            border-collapse: collapse;
+            margin: 0 auto;
+            font-size: 11px;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th, td {
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            width: 55px;
+            height: 55px;
+            text-align: center;
+            vertical-align: middle;
+            padding: 2px 5px;
+            font-weight: normal;
+            transition: all 0.2s ease-in-out;
+            line-height: 1.2;
+        }
+
+        td:hover {
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        th {
+            background-color: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* ✅ 검색 결과 하이라이트 스타일 */
+        .highlighted {
+            box-shadow: 0 0 15px 4px #e74c3c;
+            border: 2px solid #e74c3c !important;
+            transform: scale(1.05);
+            z-index: 5;
+        }
+
+        /* ✅ 그룹별 색상 (정상) */
+        .alkali-metal { background-color: #ffcc80; }
+        .alkaline-earth-metal { background-color: #ffe0b2; }
+        .transition-metal { background-color: #ffd580; }
+        .post-transition-metal { background-color: #ffddb3; }
+        .metalloid { background-color: #d1d17b; }
+        .nonmetal { background-color: #a0d8f0; }
+        .halogen { background-color: #ffb3b3; }
+        .noble-gas { background-color: #b0e0e6; }
+        .lanthanide { background-color: #d6b3ff; }
+        .actinide { background-color: #b3d9ff; }
+
+        .empty {
+            background-color: #fff;
+            border: none;
+        }
+
+        caption {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        /* --- Simulation Area Styles --- */
+        .simulation-container {
+            width: 100%;
+            aspect-ratio: 1 / 1; 
+            max-width: 400px;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #ecf0f1;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #atomCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #atom-info {
+            text-align: center;
+            padding: 10px;
+            min-height: 50px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        /* --- Tooltip Styles --- */
+        .tooltip {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            background: #2c3e50;
+            color: #fff;
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: opacity 0.2s, visibility 0.2s;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+    </style>
 </head>
 <body>
-  <div id="tooltip" class="tooltip"></div>
-  <div>
-    <input id="symbolInput" placeholder="원소 기호 (예: H)">
-    <input id="groupInput" placeholder="족 번호 (예: 1)">
-    <input id="periodInput" placeholder="주기 번호 (예: 2)">
-    <button id="searchBtn">검색</button>
-  </div>
+    <div id="tooltip" class="tooltip"></div>
 
-  <pre id="result"></pre>
+    <div class="app-container">
+        <!-- 1. 주기율표 섹션 -->
+        <div class="table-section">
+            <div class="search-area">
+                <input id="symbolInput" placeholder="원소 기호 (예: H)" class="rounded">
+                <input id="groupInput" placeholder="족 번호 (예: 1)" type="number" min="1" max="18" class="rounded">
+                <input id="periodInput" placeholder="주기 번호 (예: 2)" type="number" min="1" max="7" class="rounded">
+                <button onclick="searchElement()" class="rounded-lg">검색</button>
+            </div>
 
-<table>
-  <caption>전체 원소 주기율표 (족 &amp; 주기 정확한 배치)</caption>
-  <thead>
-    <tr>
-      <th>주기\족</th>
-      <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th>
-    </tr>
-  </thead>
-  <tbody>
-    <!-- 1주기 -->
-    <tr>
-      <th>1</th>
-      <td class="alkali-metal">H<br>수소</td>
-      <td class="empty" colspan="16"></td>
-      <td class="noble-gas nonmetal">He<br>헬륨</td>
-    </tr>
+            <pre id="result" class="mb-4"></pre>
 
-    <!-- 2주기 -->
-    <tr>
-      <th>2</th>
-      <td class="alkali-metal">Li<br>리튬</td>
-      <td class="alkaline-earth-metal">Be<br>베릴륨</td>
-      <td colspan="10" class="empty"></td>
-      <td class="metalloid">B<br>붕소</td>
-      <td class="nonmetal">C<br>탄소</td>
-      <td class="nonmetal">N<br>질소</td>
-      <td class="nonmetal">O<br>산소</td>
-      <td class="halogen">F<br>플루오린</td>
-      <td class="noble-gas nonmetal">Ne<br>네온</td>
-    </tr>
+            <table id="periodic-table">
+                <caption>전체 원소 주기율표 (족 &amp; 주기 정확한 배치)</caption>
+                <thead>
+                    <tr>
+                        <th>주기\족</th>
+                        <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 1주기 -->
+                    <tr data-period="1">
+                        <th>1</th>
+                        <td data-symbol="H" class="alkali-metal">H<br>수소</td>
+                        <td class="empty" colspan="16"></td>
+                        <td data-symbol="He" class="noble-gas nonmetal">He<br>헬륨</td>
+                    </tr>
 
-    <!-- 3주기 -->
-    <tr>
-      <th>3</th>
-      <td class="alkali-metal">Na<br>나트륨</td>
-      <td class="alkaline-earth-metal">Mg<br>마그네슘</td>
-      <td colspan="10" class="empty"></td>
-      <td class="post-transition-metal">Al<br>알루미늄</td>
-      <td class="metalloid">Si<br>규소</td>
-      <td class="nonmetal">P<br>인</td>
-      <td class="nonmetal">S<br>황</td>
-      <td class="halogen">Cl<br>염소</td>
-      <td class="noble-gas nonmetal">Ar<br>아르곤</td>
-    </tr>
+                    <!-- 2주기 -->
+                    <tr data-period="2">
+                        <th>2</th>
+                        <td data-symbol="Li" class="alkali-metal">Li<br>리튬</td>
+                        <td data-symbol="Be" class="alkaline-earth-metal">Be<br>베릴륨</td>
+                        <td colspan="10" class="empty"></td>
+                        <td data-symbol="B" class="metalloid">B<br>붕소</td>
+                        <td data-symbol="C" class="nonmetal">C<br>탄소</td>
+                        <td data-symbol="N" class="nonmetal">N<br>질소</td>
+                        <td data-symbol="O" class="nonmetal">O<br>산소</td>
+                        <td data-symbol="F" class="halogen">F<br>플루오린</td>
+                        <td data-symbol="Ne" class="noble-gas nonmetal">Ne<br>네온</td>
+                    </tr>
 
-    <!-- 4주기 -->
-    <tr>
-      <th>4</th>
-      <td class="alkali-metal">K<br>칼륨</td>
-      <td class="alkaline-earth-metal">Ca<br>칼슘</td>
-      <td class="transition-metal">Sc<br>스칸듐</td>
-      <td class="transition-metal">Ti<br>티타늄</td>
-      <td class="transition-metal">V<br>바나듐</td>
-      <td class="transition-metal">Cr<br>크롬</td>
-      <td class="transition-metal">Mn<br>망가니즈</td>
-      <td class="transition-metal">Fe<br>철</td>
-      <td class="transition-metal">Co<br>코발트</td>
-      <td class="transition-metal">Ni<br>니켈</td>
-      <td class="transition-metal">Cu<br>구리</td>
-      <td class="transition-metal">Zn<br>아연</td>
-      <td class="post-transition-metal">Ga<br>갈륨</td>
-      <td class="metalloid">Ge<br>저마늄</td>
-      <td class="metalloid">As<br>비소</td>
-      <td class="nonmetal">Se<br>셀레늄</td>
-      <td class="halogen">Br<br>브로민</td>
-      <td class="noble-gas nonmetal">Kr<br>크립톤</td>
-    </tr>
+                    <!-- 3주기 -->
+                    <tr data-period="3">
+                        <th>3</th>
+                        <td data-symbol="Na" class="alkali-metal">Na<br>나트륨</td>
+                        <td data-symbol="Mg" class="alkaline-earth-metal">Mg<br>마그네슘</td>
+                        <td colspan="10" class="empty"></td>
+                        <td data-symbol="Al" class="post-transition-metal">Al<br>알루미늄</td>
+                        <td data-symbol="Si" class="metalloid">Si<br>규소</td>
+                        <td data-symbol="P" class="nonmetal">P<br>인</td>
+                        <td data-symbol="S" class="nonmetal">S<br>황</td>
+                        <td data-symbol="Cl" class="halogen">Cl<br>염소</td>
+                        <td data-symbol="Ar" class="noble-gas nonmetal">Ar<br>아르곤</td>
+                    </tr>
 
-    <!-- 5주기 -->
-    <tr>
-      <th>5</th>
-      <td class="alkali-metal">Rb<br>루비듐</td>
-      <td class="alkaline-earth-metal">Sr<br>스트론튬</td>
-      <td class="transition-metal">Y<br>이트륨</td>
-      <td class="transition-metal">Zr<br>지르코늄</td>
-      <td class="transition-metal">Nb<br>나이오븀</td>
-      <td class="transition-metal">Mo<br>몰리브데넘</td>
-      <td class="transition-metal">Tc<br>테크네튬</td>
-      <td class="transition-metal">Ru<br>루테늄</td>
-      <td class="transition-metal">Rh<br>로듐</td>
-      <td class="transition-metal">Pd<br>팔라듐</td>
-      <td class="transition-metal">Ag<br>은</td>
-      <td class="transition-metal">Cd<br>카드뮴</td>
-      <td class="post-transition-metal">In<br>인듐</td>
-      <td class="post-transition-metal">Sn<br>주석</td>
-      <td class="metalloid">Sb<br>안티모니</td>
-      <td class="metalloid">Te<br>텔루륨</td>
-      <td class="halogen">I<br>아이오딘</td>
-      <td class="noble-gas nonmetal">Xe<br>크세논</td>
-    </tr>
+                    <!-- 4주기 -->
+                    <tr data-period="4">
+                        <th>4</th>
+                        <td data-symbol="K" class="alkali-metal">K<br>칼륨</td>
+                        <td data-symbol="Ca" class="alkaline-earth-metal">Ca<br>칼슘</td>
+                        <td data-symbol="Sc" class="transition-metal">Sc<br>스칸듐</td>
+                        <td data-symbol="Ti" class="transition-metal">Ti<br>티타늄</td>
+                        <td data-symbol="V" class="transition-metal">V<br>바나듐</td>
+                        <td data-symbol="Cr" class="transition-metal">Cr<br>크롬</td>
+                        <td data-symbol="Mn" class="transition-metal">Mn<br>망가니즈</td>
+                        <td data-symbol="Fe" class="transition-metal">Fe<br>철</td>
+                        <td data-symbol="Co" class="transition-metal">Co<br>코발트</td>
+                        <td data-symbol="Ni" class="transition-metal">Ni<br>니켈</td>
+                        <td data-symbol="Cu" class="transition-metal">Cu<br>구리</td>
+                        <td data-symbol="Zn" class="transition-metal">Zn<br>아연</td>
+                        <td data-symbol="Ga" class="post-transition-metal">Ga<br>갈륨</td>
+                        <td data-symbol="Ge" class="metalloid">Ge<br>저마늄</td>
+                        <td data-symbol="As" class="metalloid">As<br>비소</td>
+                        <td data-symbol="Se" class="nonmetal">Se<br>셀레늄</td>
+                        <td data-symbol="Br" class="halogen">Br<br>브로민</td>
+                        <td data-symbol="Kr" class="noble-gas nonmetal">Kr<br>크립톤</td>
+                    </tr>
 
-    <!-- 6주기 -->
-    <tr>
-      <th>6</th>
-      <td class="alkali-metal">Cs<br>세슘</td>
-      <td class="alkaline-earth-metal">Ba<br>바륨</td>
-      <td class="lanthanide">La<br>란타넘</td>
-      <td class="transition-metal">Hf<br>하프늄</td>
-      <td class="transition-metal">Ta<br>탄탈럼</td>
-      <td class="transition-metal">W<br>텅스텐</td>
-      <td class="transition-metal">Re<br>레늄</td>
-      <td class="transition-metal">Os<br>오스뮴</td>
-      <td class="transition-metal">Ir<br>이리듐</td>
-      <td class="transition-metal">Pt<br>백금</td>
-      <td class="transition-metal">Au<br>금</td>
-      <td class="transition-metal">Hg<br>수은</td>
-      <td class="post-transition-metal">Tl<br>탈륨</td>
-      <td class="post-transition-metal">Pb<br>납</td>
-      <td class="post-transition-metal">Bi<br>비스무트</td>
-      <td class="post-transition-metal">Po<br>폴로늄</td>
-      <td class="halogen">At<br>아스타틴</td>
-      <td class="noble-gas nonmetal">Rn<br>라돈</td>
-    </tr>
+                    <!-- 5주기 -->
+                    <tr data-period="5">
+                        <th>5</th>
+                        <td data-symbol="Rb" class="alkali-metal">Rb<br>루비듐</td>
+                        <td data-symbol="Sr" class="alkaline-earth-metal">Sr<br>스트론튬</td>
+                        <td data-symbol="Y" class="transition-metal">Y<br>이트륨</td>
+                        <td data-symbol="Zr" class="transition-metal">Zr<br>지르코늄</td>
+                        <td data-symbol="Nb" class="transition-metal">Nb<br>나이오븀</td>
+                        <td data-symbol="Mo" class="transition-metal">Mo<br>몰리브데넘</td>
+                        <td data-symbol="Tc" class="transition-metal">Tc<br>테크네튬</td>
+                        <td data-symbol="Ru" class="transition-metal">Ru<br>루테늄</td>
+                        <td data-symbol="Rh" class="transition-metal">Rh<br>로듐</td>
+                        <td data-symbol="Pd" class="transition-metal">Pd<br>팔라듐</td>
+                        <td data-symbol="Ag" class="transition-metal">Ag<br>은</td>
+                        <td data-symbol="Cd" class="transition-metal">Cd<br>카드뮴</td>
+                        <td data-symbol="In" class="post-transition-metal">In<br>인듐</td>
+                        <td data-symbol="Sn" class="post-transition-metal">Sn<br>주석</td>
+                        <td data-symbol="Sb" class="metalloid">Sb<br>안티모니</td>
+                        <td data-symbol="Te" class="metalloid">Te<br>텔루륨</td>
+                        <td data-symbol="I" class="halogen">I<br>아이오딘</td>
+                        <td data-symbol="Xe" class="noble-gas nonmetal">Xe<br>크세논</td>
+                    </tr>
 
-    <!-- 7주기 -->
-    <tr>
-      <th>7</th>
-      <td class="alkali-metal">Fr<br>프랑슘</td>
-      <td class="alkaline-earth-metal">Ra<br>라듐</td>
-      <td class="actinide">Ac<br>악티늄</td>
-      <td class="transition-metal">Rf<br>러더퍼듐</td>
-      <td class="transition-metal">Db<br>더브늄</td>
-      <td class="transition-metal">Sg<br>시보귬</td>
-      <td class="transition-metal">Bh<br>보륨</td>
-      <td class="transition-metal">Hs<br>하슘</td>
-      <td class="transition-metal">Mt<br>마이트너륨</td>
-      <td class="transition-metal">Ds<br>다름슈타튬</td>
-      <td class="transition-metal">Rg<br>뢴트게늄</td>
-      <td class="transition-metal">Cn<br>코페르니슘</td>
-      <td class="post-transition-metal">Nh<br>니호늄</td>
-      <td class="post-transition-metal">Fl<br>플레로븀</td>
-      <td class="post-transition-metal">Mc<br>모스코븀</td>
-      <td class="post-transition-metal">Lv<br>리버모륨</td>
-      <td class="halogen">Ts<br>테네신</td>
-      <td class="noble-gas nonmetal">Og<br>오가네손</td>
-    </tr>
-  </tbody>
+                    <!-- 6주기 -->
+                    <tr data-period="6">
+                        <th>6</th>
+                        <td data-symbol="Cs" class="alkali-metal">Cs<br>세슘</td>
+                        <td data-symbol="Ba" class="alkaline-earth-metal">Ba<br>바륨</td>
+                        <td data-symbol="La" class="lanthanide">La-Lu<br>란타넘족</td> <!-- 란타넘족 시작 지점 표시 -->
+                        <td data-symbol="Hf" class="transition-metal">Hf<br>하프늄</td>
+                        <td data-symbol="Ta" class="transition-metal">Ta<br>탄탈럼</td>
+                        <td data-symbol="W" class="transition-metal">W<br>텅스텐</td>
+                        <td data-symbol="Re" class="transition-metal">Re<br>레늄</td>
+                        <td data-symbol="Os" class="transition-metal">Os<br>오스뮴</td>
+                        <td data-symbol="Ir" class="transition-metal">Ir<br>이리듐</td>
+                        <td data-symbol="Pt" class="transition-metal">Pt<br>백금</td>
+                        <td data-symbol="Au" class="transition-metal">Au<br>금</td>
+                        <td data-symbol="Hg" class="transition-metal">Hg<br>수은</td>
+                        <td data-symbol="Tl" class="post-transition-metal">Tl<br>탈륨</td>
+                        <td data-symbol="Pb" class="post-transition-metal">Pb<br>납</td>
+                        <td data-symbol="Bi" class="post-transition-metal">Bi<br>비스무트</td>
+                        <td data-symbol="Po" class="post-transition-metal">Po<br>폴로늄</td>
+                        <td data-symbol="At" class="halogen">At<br>아스타틴</td>
+                        <td data-symbol="Rn" class="noble-gas nonmetal">Rn<br>라돈</td>
+                    </tr>
 
-  <tfoot>
-    <tr><th colspan="18" style="background:#fff; text-align:left;">란타넘족 (6주기 f-블록)</th></tr>
-    <tr>
-      <td colspan="2" class="empty"></td>
-      <td class="lanthanide">La<br>란타넘</td>
-      <td class="lanthanide">Ce<br>세륨</td>
-      <td class="lanthanide">Pr<br>프라세오디뮴</td>
-      <td class="lanthanide">Nd<br>네오디뮴</td>
-      <td class="lanthanide">Pm<br>프로메튬</td>
-      <td class="lanthanide">Sm<br>사마륨</td>
-      <td class="lanthanide">Eu<br>유로퓸</td>
-      <td class="lanthanide">Gd<br>가돌리늄</td>
-      <td class="lanthanide">Tb<br>터븀</td>
-      <td class="lanthanide">Dy<br>디스프로슘</td>
-      <td class="lanthanide">Ho<br>홀뮴</td>
-      <td class="lanthanide">Er<br>어븀</td>
-      <td class="lanthanide">Tm<br>툴륨</td>
-      <td class="lanthanide">Yb<br>이터븀</td>
-      <td class="lanthanide">Lu<br>루테튬</td>
-      <td class="empty"></td>
-    </tr>
-    <tr><th colspan="18" style="background:#fff; text-align:left;">악티늄족 (7주기 f-블록)</th></tr>
-    <tr>
-      <td colspan="2" class="empty"></td>
-      <td class="actinide">Ac<br>악티늄</td>
-      <td class="actinide">Th<br>토륨</td>
-      <td class="actinide">Pa<br>프로트악티늄</td>
-      <td class="actinide">U<br>우라늄</td>
-      <td class="actinide">Np<br>넵투늄</td>
-      <td class="actinide">Pu<br>플루토늄</td>
-      <td class="actinide">Am<br>아메리슘</td>
-      <td class="actinide">Cm<br>퀴륨</td>
-      <td class="actinide">Bk<br>버클륨</td>
-      <td class="actinide">Cf<br>캘리포늄</td>
-      <td class="actinide">Es<br>아인슈타이늄</td>
-      <td class="actinide">Fm<br>페르뮴</td>
-      <td class="actinide">Md<br>멘델레븀</td>
-      <td class="actinide">No<br>노벨륨</td>
-      <td class="actinide">Lr<br>로렌슘</td>
-      <td class="empty"></td>
-    </tr>
-  </tfoot>
-</table>
-<script src="{{ url_for('static', filename='project.js') }}"></script>
+                    <!-- 7주기 -->
+                    <tr data-period="7">
+                        <th>7</th>
+                        <td data-symbol="Fr" class="alkali-metal">Fr<br>프랑슘</td>
+                        <td data-symbol="Ra" class="alkaline-earth-metal">Ra<br>라듐</td>
+                        <td data-symbol="Ac" class="actinide">Ac-Lr<br>악티늄족</td> <!-- 악티늄족 시작 지점 표시 -->
+                        <td data-symbol="Rf" class="transition-metal">Rf<br>러더퍼듐</td>
+                        <td data-symbol="Db" class="transition-metal">Db<br>더브늄</td>
+                        <td data-symbol="Sg" class="transition-metal">Sg<br>시보귬</td>
+                        <td data-symbol="Bh" class="transition-metal">Bh<br>보륨</td>
+                        <td data-symbol="Hs" class="transition-metal">Hs<br>하슘</td>
+                        <td data-symbol="Mt" class="transition-metal">Mt<br>마이트너륨</td>
+                        <td data-symbol="Ds" class="transition-metal">Ds<br>다름슈타튬</td>
+                        <td data-symbol="Rg" class="transition-metal">Rg<br>뢴트게늄</td>
+                        <td data-symbol="Cn" class="transition-metal">Cn<br>코페르니슘</td>
+                        <td data-symbol="Nh" class="post-transition-metal">Nh<br>니호늄</td>
+                        <td data-symbol="Fl" class="post-transition-metal">Fl<br>플레로븀</td>
+                        <td data-symbol="Mc" class="post-transition-metal">Mc<br>모스코븀</td>
+                        <td data-symbol="Lv" class="post-transition-metal">Lv<br>리버모륨</td>
+                        <td data-symbol="Ts" class="halogen">Ts<br>테네신</td>
+                        <td data-symbol="Og" class="noble-gas nonmetal">Og<br>오가네손</td>
+                    </tr>
+                    <tr><td colspan="18" class="empty h-4"></td></tr>
+                </tbody>
+
+                <tfoot>
+                    <tr><th colspan="18" class="text-left" style="background:#fff; color:#333; font-weight: bold;">란타넘족 (6주기 f-블록)</th></tr>
+                    <tr>
+                        <td colspan="3" class="empty"></td>
+                        <td data-symbol="Ce" class="lanthanide">Ce<br>세륨</td>
+                        <td data-symbol="Pr" class="lanthanide">Pr<br>프라세오디뮴</td>
+                        <td data-symbol="Nd" class="lanthanide">Nd<br>네오디뮴</td>
+                        <td data-symbol="Pm" class="lanthanide">Pm<br>프로메튬</td>
+                        <td data-symbol="Sm" class="lanthanide">Sm<br>사마륨</td>
+                        <td data-symbol="Eu" class="lanthanide">Eu<br>유로퓸</td>
+                        <td data-symbol="Gd" class="lanthanide">Gd<br>가돌리늄</td>
+                        <td data-symbol="Tb" class="lanthanide">Tb<br>터븀</td>
+                        <td data-symbol="Dy" class="lanthanide">Dy<br>디스프로슘</td>
+                        <td data-symbol="Ho" class="lanthanide">Ho<br>홀뮴</td>
+                        <td data-symbol="Er" class="lanthanide">Er<br>어븀</td>
+                        <td data-symbol="Tm" class="lanthanide">Tm<br>툴륨</td>
+                        <td data-symbol="Yb" class="lanthanide">Yb<br>이터븀</td>
+                        <td data-symbol="Lu" class="lanthanide">Lu<br>루테튬</td>
+                        <td class="empty"></td>
+                    </tr>
+                    <tr><th colspan="18" class="text-left" style="background:#fff; color:#333; font-weight: bold;">악티늄족 (7주기 f-블록)</th></tr>
+                    <tr>
+                        <td colspan="3" class="empty"></td>
+                        <td data-symbol="Th" class="actinide">Th<br>토륨</td>
+                        <td data-symbol="Pa" class="actinide">Pa<br>프로트악티늄</td>
+                        <td data-symbol="U" class="actinide">U<br>우라늄</td>
+                        <td data-symbol="Np" class="actinide">Np<br>넵투늄</td>
+                        <td data-symbol="Pu" class="actinide">Pu<br>플루토늄</td>
+                        <td data-symbol="Am" class="actinide">Am<br>아메리슘</td>
+                        <td data-symbol="Cm" class="actinide">Cm<br>퀴륨</td>
+                        <td data-symbol="Bk" class="actinide">Bk<br>버클륨</td>
+                        <td data-symbol="Cf" class="actinide">Cf<br>캘리포늄</td>
+                        <td data-symbol="Es" class="actinide">Es<br>아인슈타이늄</td>
+                        <td data-symbol="Fm" class="actinide">Fm<br>페르뮴</td>
+                        <td data-symbol="Md" class="actinide">Md<br>멘델레븀</td>
+                        <td data-symbol="No" class="actinide">No<br>노벨륨</td>
+                        <td data-symbol="Lr" class="actinide">Lr<br>로렌슘</td>
+                        <td class="empty"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- 2. 원자 시뮬레이션 섹션 -->
+        <div class="simulation-section">
+            <h2 class="text-xl font-bold text-center text-gray-700">원자 모형 시뮬레이션</h2>
+            <div class="simulation-container">
+                <canvas id="atomCanvas"></canvas>
+            </div>
+            <div id="atom-info" class="text-left p-3 border border-gray-200 rounded-lg">
+                <p><strong>선택된 원소:</strong> 원소를 클릭하여 원자 모형을 확인하세요.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const elements = {
+            "H": { Z: 1, name: "수소", group: 1, period: 1, mass: 1.008, shells: [1], category: "nonmetal" },
+            "He": { Z: 2, name: "헬륨", group: 18, period: 1, mass: 4.003, shells: [2], category: "noble-gas" },
+            "Li": { Z: 3, name: "리튬", group: 1, period: 2, mass: 6.94, shells: [2, 1], category: "alkali-metal" },
+            "Be": { Z: 4, name: "베릴륨", group: 2, period: 2, mass: 9.012, shells: [2, 2], category: "alkaline-earth-metal" },
+            "B": { Z: 5, name: "붕소", group: 13, period: 2, mass: 10.81, shells: [2, 3], category: "metalloid" },
+            "C": { Z: 6, name: "탄소", group: 14, period: 2, mass: 12.01, shells: [2, 4], category: "nonmetal" },
+            "N": { Z: 7, name: "질소", group: 15, period: 2, mass: 14.01, shells: [2, 5], category: "nonmetal" },
+            "O": { Z: 8, name: "산소", group: 16, period: 2, mass: 16.00, shells: [2, 6], category: "nonmetal" },
+            "F": { Z: 9, name: "플루오린", group: 17, period: 2, mass: 19.00, shells: [2, 7], category: "halogen" },
+            "Ne": { Z: 10, name: "네온", group: 18, period: 2, mass: 20.18, shells: [2, 8], category: "noble-gas" },
+            "Na": { Z: 11, name: "나트륨", group: 1, period: 3, mass: 22.99, shells: [2, 8, 1], category: "alkali-metal" },
+            "Mg": { Z: 12, name: "마그네슘", group: 2, period: 3, mass: 24.31, shells: [2, 8, 2], category: "alkaline-earth-metal" },
+            "Al": { Z: 13, name: "알루미늄", group: 13, period: 3, mass: 26.98, shells: [2, 8, 3], category: "post-transition-metal" },
+            "Si": { Z: 14, name: "규소", group: 14, period: 3, mass: 28.09, shells: [2, 8, 4], category: "metalloid" },
+            "P": { Z: 15, name: "인", group: 15, period: 3, mass: 30.97, shells: [2, 8, 5], category: "nonmetal" },
+            "S": { Z: 16, name: "황", group: 16, period: 3, mass: 32.06, shells: [2, 8, 6], category: "nonmetal" },
+            "Cl": { Z: 17, name: "염소", group: 17, period: 3, mass: 35.45, shells: [2, 8, 7], category: "halogen" },
+            "Ar": { Z: 18, name: "아르곤", group: 18, period: 3, mass: 39.95, shells: [2, 8, 8], category: "noble-gas" },
+            "K": { Z: 19, name: "칼륨", group: 1, period: 4, mass: 39.10, shells: [2, 8, 8, 1], category: "alkali-metal" },
+            "Ca": { Z: 20, name: "칼슘", group: 2, period: 4, mass: 40.08, shells: [2, 8, 8, 2], category: "alkaline-earth-metal" },
+            // 4주기 전이 금속 (대표적인 2, 8, 8, x 구조 사용, 실제 오비탈 복잡성 단순화)
+            "Sc": { Z: 21, name: "스칸듐", group: 3, period: 4, mass: 44.96, shells: [2, 8, 9, 2], category: "transition-metal" },
+            "Ti": { Z: 22, name: "티타늄", group: 4, period: 4, mass: 47.87, shells: [2, 8, 10, 2], category: "transition-metal" },
+            "V": { Z: 23, name: "바나듐", group: 5, period: 4, mass: 50.94, shells: [2, 8, 11, 2], category: "transition-metal" },
+            "Cr": { Z: 24, name: "크롬", group: 6, period: 4, mass: 52.00, shells: [2, 8, 13, 1], category: "transition-metal" }, // 예외: [2, 8, 13, 1]
+            "Mn": { Z: 25, name: "망가니즈", group: 7, period: 4, mass: 54.94, shells: [2, 8, 13, 2], category: "transition-metal" },
+            "Fe": { Z: 26, name: "철", group: 8, period: 4, mass: 55.85, shells: [2, 8, 14, 2], category: "transition-metal" },
+            "Co": { Z: 27, name: "코발트", group: 9, period: 4, mass: 58.93, shells: [2, 8, 15, 2], category: "transition-metal" },
+            "Ni": { Z: 28, name: "니켈", group: 10, period: 4, mass: 58.69, shells: [2, 8, 16, 2], category: "transition-metal" },
+            "Cu": { Z: 29, name: "구리", group: 11, period: 4, mass: 63.55, shells: [2, 8, 18, 1], category: "transition-metal" }, // 예외: [2, 8, 18, 1]
+            "Zn": { Z: 30, name: "아연", group: 12, period: 4, mass: 65.38, shells: [2, 8, 18, 2], category: "transition-metal" },
+            "Ga": { Z: 31, name: "갈륨", group: 13, period: 4, mass: 69.72, shells: [2, 8, 18, 3], category: "post-transition-metal" },
+            "Ge": { Z: 32, name: "저마늄", group: 14, period: 4, mass: 72.63, shells: [2, 8, 18, 4], category: "metalloid" },
+            "As": { Z: 33, name: "비소", group: 15, period: 4, mass: 74.92, shells: [2, 8, 18, 5], category: "metalloid" },
+            "Se": { Z: 34, name: "셀레늄", group: 16, period: 4, mass: 78.97, shells: [2, 8, 18, 6], category: "nonmetal" },
+            "Br": { Z: 35, name: "브로민", group: 17, period: 4, mass: 79.90, shells: [2, 8, 18, 7], category: "halogen" },
+            "Kr": { Z: 36, name: "크립톤", group: 18, period: 4, mass: 83.80, shells: [2, 8, 18, 8], category: "noble-gas" },
+            
+            // 5주기 (대표 원소만 추가, 나머지는 4주기와 유사한 패턴)
+            "Rb": { Z: 37, name: "루비듐", group: 1, period: 5, mass: 85.47, shells: [2, 8, 18, 8, 1], category: "alkali-metal" },
+            "Sr": { Z: 38, name: "스트론튬", group: 2, period: 5, mass: 87.62, shells: [2, 8, 18, 8, 2], category: "alkaline-earth-metal" },
+            "Y": { Z: 39, name: "이트륨", group: 3, period: 5, mass: 88.91, shells: [2, 8, 18, 9, 2], category: "transition-metal" },
+            "Cd": { Z: 48, name: "카드뮴", group: 12, period: 5, mass: 112.4, shells: [2, 8, 18, 18, 2], category: "transition-metal" },
+            "In": { Z: 49, name: "인듐", group: 13, period: 5, mass: 114.8, shells: [2, 8, 18, 18, 3], category: "post-transition-metal" },
+            "Xe": { Z: 54, name: "크세논", group: 18, period: 5, mass: 131.3, shells: [2, 8, 18, 18, 8], category: "noble-gas" },
+
+            // 6주기 (대표 원소만 추가, 란타넘족은 복잡하므로 6주기 3족의 대표 원소만 시뮬레이션)
+            "Cs": { Z: 55, name: "세슘", group: 1, period: 6, mass: 132.9, shells: [2, 8, 18, 18, 8, 1], category: "alkali-metal" },
+            "Ba": { Z: 56, name: "바륨", group: 2, period: 6, mass: 137.3, shells: [2, 8, 18, 18, 8, 2], category: "alkaline-earth-metal" },
+            "La": { Z: 57, name: "란타넘", group: 3, period: 6, mass: 138.9, shells: [2, 8, 18, 18, 9, 2], category: "lanthanide" },
+            "Au": { Z: 79, name: "금", group: 11, period: 6, mass: 197.0, shells: [2, 8, 18, 32, 17, 2], category: "transition-metal" }, // 근사치 [2, 8, 18, 32, 18, 1] 사용 가능
+            "Hg": { Z: 80, name: "수은", group: 12, period: 6, mass: 200.6, shells: [2, 8, 18, 32, 18, 2], category: "transition-metal" },
+            "Rn": { Z: 86, name: "라돈", group: 18, period: 6, mass: 222.0, shells: [2, 8, 18, 32, 18, 8], category: "noble-gas" },
+
+            // 7주기 (대표 원소만 추가)
+            "Fr": { Z: 87, name: "프랑슘", group: 1, period: 7, mass: 223.0, shells: [2, 8, 18, 32, 18, 8, 1], category: "alkali-metal" },
+            "Ra": { Z: 88, name: "라듐", group: 2, period: 7, mass: 226.0, shells: [2, 8, 18, 32, 18, 8, 2], category: "alkaline-earth-metal" },
+            "Ac": { Z: 89, name: "악티늄", group: 3, period: 7, mass: 227.0, shells: [2, 8, 18, 32, 18, 9, 2], category: "actinide" },
+            "Og": { Z: 118, name: "오가네손", group: 18, period: 7, mass: 294.0, shells: [2, 8, 18, 32, 32, 18, 8], category: "noble-gas" },
+            
+            // 데이터가 없는 원소는 더미 객체로 채워서 검색 및 하이라이트 기능을 유지합니다.
+            // 란타넘족과 악티늄족의 나머지 원소들도 데이터 추가 가능하지만, 시뮬레이션을 위해 일부만 명시했습니다.
+        };
+
+        const tooltip = document.getElementById('tooltip');
+        const canvas = document.getElementById('atomCanvas');
+        const ctx = canvas.getContext('2d');
+        const atomInfo = document.getElementById('atom-info');
+        const periodicTable = document.getElementById('periodic-table');
+
+        // 초기 Atom Canvas 크기 설정 (반응형 대응)
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            // 크기 변경 후 현재 원소를 다시 그립니다.
+            if (canvas.dataset.currentSymbol) {
+                const element = elements[canvas.dataset.currentSymbol];
+                if (element) {
+                    drawAtom(element);
+                }
+            }
+        }
+        window.addEventListener('load', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+
+
+        // --- 1. 원자 시뮬레이션 함수 ---
+        function drawAtom(element) {
+            const W = canvas.width;
+            const H = canvas.height;
+            const centerX = W / 2;
+            const centerY = H / 2;
+            ctx.clearRect(0, 0, W, H);
+            
+            // 현재 원소 기호 저장 (resize 시 재사용)
+            canvas.dataset.currentSymbol = element.Z ? element.symbol : null;
+
+
+            // 양성자, 중성자 수 계산 (근사치)
+            const protons = element.Z;
+            const neutrons = Math.round(element.mass) - protons;
+
+            // 1. 핵 그리기
+            const nucleusRadius = Math.min(W, H) * 0.1;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, nucleusRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#E74C3C'; // 붉은색 핵
+            ctx.fill();
+
+            // 핵 정보 텍스트
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = `${nucleusRadius * 0.4}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(element.symbol, centerX, centerY - nucleusRadius * 0.25);
+            ctx.fillText(`Z=${protons}`, centerX, centerY + nucleusRadius * 0.35);
+
+
+            // 2. 궤도(껍질) 그리기
+            const shellCount = element.shells.length;
+            const maxRadius = Math.min(W, H) / 2 * 0.85; // 캔버스 영역의 85%까지 궤도 허용
+            const radiusStep = maxRadius / (shellCount + 1);
+
+            element.shells.forEach((electrons, shellIndex) => {
+                if (electrons === 0) return; // 전자가 없는 껍질은 그리지 않음
+
+                const radius = (shellIndex + 1) * radiusStep;
+
+                // 궤도 라인
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(0, 0, 0, 0.2 + ${shellIndex * 0.1})`;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // 궤도 내 전자 배치
+                for (let i = 0; i < electrons; i++) {
+                    const angle = (i / electrons) * Math.PI * 2;
+                    const electronX = centerX + radius * Math.cos(angle);
+                    const electronY = centerY + radius * Math.sin(angle);
+
+                    // 전자 그리기
+                    ctx.beginPath();
+                    ctx.arc(electronX, electronY, nucleusRadius * 0.1, 0, Math.PI * 2);
+                    ctx.fillStyle = '#3498DB'; // 파란색 전자
+                    ctx.fill();
+                }
+            });
+
+            // 3. 원소 정보 업데이트
+            const infoHTML = `
+                <p><strong>원소명:</strong> ${element.name} (${element.symbol})</p>
+                <p><strong>원자 번호 (Z):</strong> ${element.Z}</p>
+                <p><strong>양성자/전자 수:</strong> ${protons}개</p>
+                <p><strong>중성자 수:</strong> ${neutrons}개 (근사)</p>
+                <p><strong>전자 껍질:</strong> ${element.shells.join(', ')}</p>
+            `;
+            atomInfo.innerHTML = infoHTML;
+        }
+
+        // --- 2. 주기율표 상호작용 설정 ---
+        function getElementData(cell) {
+            const symbol = cell.dataset.symbol;
+            if (symbol && elements[symbol]) {
+                return { ...elements[symbol], symbol };
+            }
+            return null;
+        }
+
+        function highlightElement(symbol) {
+            document.querySelectorAll('td.highlighted').forEach(td => td.classList.remove('highlighted'));
+            const cell = document.querySelector(`td[data-symbol="${symbol}"]`);
+            if (cell) {
+                cell.classList.add('highlighted');
+                return cell;
+            }
+            return null;
+        }
+
+        function handleElementClick(e) {
+            const cell = e.target.closest('td[data-symbol]');
+            if (!cell || cell.classList.contains('empty')) return;
+            
+            const element = getElementData(cell);
+            if (element) {
+                highlightElement(element.symbol);
+                drawAtom(element);
+                document.getElementById('result').textContent = 
+                    `${element.name} (${element.symbol})이(가) 선택되었습니다. 원자 모형을 확인하세요.`;
+            }
+        }
+
+        function handleMouseOver(e) {
+            const cell = e.target.closest('td[data-symbol]');
+            if (!cell || cell.classList.contains('empty')) return;
+
+            const element = getElementData(cell);
+            if (element) {
+                const tooltipText = `
+                    원소: ${element.name} (${element.symbol})
+                    Z: ${element.Z}
+                    주기: ${element.period}, 족: ${element.group}
+                    전자 배치: [${element.shells.join(', ')}]
+                `;
+                
+                tooltip.textContent = tooltipText.trim().replace(/\s{2,}/g, '\n');
+                tooltip.style.visibility = 'visible';
+                tooltip.style.opacity = '1';
+
+                // 툴팁 위치 조정
+                const rect = cell.getBoundingClientRect();
+                // 툴팁을 셀 아래 중앙에 배치
+                tooltip.style.left = `${rect.left + window.scrollX + rect.width / 2 - tooltip.offsetWidth / 2}px`;
+                tooltip.style.top = `${rect.bottom + window.scrollY + 5}px`;
+            }
+        }
+
+        function handleMouseOut() {
+            tooltip.style.opacity = '0';
+            tooltip.style.visibility = 'hidden';
+        }
+
+        function setupInteractions() {
+            periodicTable.addEventListener('click', handleElementClick);
+            periodicTable.addEventListener('mouseover', handleMouseOver);
+            periodicTable.addEventListener('mouseout', handleMouseOut);
+
+            // 초기 시뮬레이션: 수소 (H) 원자 그리기
+            const initialElement = elements["H"];
+            if (initialElement) {
+                highlightElement("H");
+                drawAtom(initialElement);
+            }
+        }
+
+
+        // --- 3. 검색 기능 ---
+        function searchElement() {
+            const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
+            const group = document.getElementById('groupInput').value.trim();
+            const period = document.getElementById('periodInput').value.trim();
+            const resultBox = document.getElementById('result');
+            resultBox.textContent = '';
+            
+            // 모든 하이라이트 제거
+            document.querySelectorAll('td.highlighted').forEach(td => td.classList.remove('highlighted'));
+
+            let foundElements = [];
+            
+            // 1. 기호로 검색
+            if (symbol && elements[symbol]) {
+                foundElements.push(elements[symbol]);
+            } 
+            
+            // 2. 족/주기로 검색 (기호 검색보다 우선순위 낮음)
+            else if (group || period) {
+                for (const key in elements) {
+                    const el = elements[key];
+                    const matchGroup = group ? (el.group === parseInt(group)) : true;
+                    const matchPeriod = period ? (el.period === parseInt(period)) : true;
+                    
+                    if (matchGroup && matchPeriod) {
+                        foundElements.push(el);
+                    }
+                }
+            }
+
+            if (foundElements.length === 1) {
+                const element = foundElements[0];
+                highlightElement(element.symbol);
+                drawAtom(element);
+                resultBox.textContent = `${element.name} (${element.symbol})을(를) 찾았습니다.`;
+                document.getElementById('symbolInput').value = element.symbol;
+                document.getElementById('groupInput').value = element.group;
+                document.getElementById('periodInput').value = element.period;
+
+            } else if (foundElements.length > 1) {
+                // 여러 개가 검색된 경우 (예: 1족)
+                const symbols = foundElements.map(el => `${el.name} (${el.symbol})`).join(', ');
+                resultBox.textContent = `조건을 만족하는 원소가 ${foundElements.length}개 있습니다: ${symbols}`;
+                
+                // 검색된 모든 원소 하이라이트
+                foundElements.forEach(el => highlightElement(el.symbol));
+
+            } else {
+                resultBox.textContent = '일치하는 원소를 찾을 수 없습니다.';
+            }
+        }
+        
+        // 페이지 로드 후 상호작용 설정
+        window.addEventListener('load', setupInteractions);
+    </script>
 </body>
 </html>
