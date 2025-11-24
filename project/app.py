@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify
+import random
 
 # 원소 데이터 (전자 껍질 배치 정보 추가 - 보어 모델 기준)
 # 껍질 순서: K, L, M, N, O, P, Q (1, 2, 3, 4, 5, 6, 7 주기)
@@ -132,6 +133,102 @@ def search_element():
         return jsonify(results)
     else:
         return jsonify({"error": "조건에 맞는 원소가 없습니다."}), 404
+
+# ========== 퀴즈 게임 API (game.py에서 가져온 로직) ==========
+
+def normalize(s):
+    """문자열 정규화 (공백 제거, 소문자 변환)"""
+    return s.strip().lower()
+
+def is_correct_answer(answer, entry, symbol=None):
+    """정답 확인 함수 (game.py의 is_correct 함수)"""
+    a = normalize(answer)
+    # 기호 확인
+    sym = (symbol or "").lower()
+    if a == sym:
+        return True
+    # 한국어 이름 확인
+    name_ko = (entry.get("name") or "").lower()
+    if a == name_ko:
+        return True
+    return False
+
+@app.route("/api/quiz/start", methods=["GET"])
+def start_quiz():
+    """새로운 퀴즈 문제를 생성하는 API"""
+    keys = list(elements_dict.keys())
+    symbol = random.choice(keys)
+    entry = elements_dict[symbol]
+    
+    return jsonify({
+        "symbol": symbol,
+        "period": entry.get("period"),
+        "group": entry.get("group"),
+        "question": f"주기: {entry.get('period')}, 족: {entry.get('group')} -> 원소는?"
+    })
+
+@app.route("/api/quiz/check", methods=["POST"])
+def check_answer():
+    """정답을 확인하는 API"""
+    data = request.get_json()
+    answer = data.get("answer", "").strip()
+    symbol = data.get("symbol", "").strip()
+    
+    if not symbol or symbol not in elements_dict:
+        return jsonify({"error": "유효하지 않은 원소 기호입니다."}), 400
+    
+    entry = elements_dict[symbol]
+    is_correct = is_correct_answer(answer, entry, symbol)
+    
+    result = {
+        "correct": is_correct,
+        "symbol": symbol,
+        "name": entry.get("name"),
+        "period": entry.get("period"),
+        "group": entry.get("group")
+    }
+    
+    if not is_correct:
+        result["message"] = f"오답. 정답: {symbol} - {entry.get('name')}"
+    else:
+        result["message"] = "정답!"
+    
+    return jsonify(result)
+
+@app.route("/api/quiz/hint", methods=["GET"])
+def get_hint():
+    """힌트를 제공하는 API"""
+    symbol = request.args.get("symbol", "").strip()
+    
+    if not symbol or symbol not in elements_dict:
+        return jsonify({"error": "유효하지 않은 원소 기호입니다."}), 400
+    
+    entry = elements_dict[symbol]
+    name_ko = entry.get("name") or ""
+    ko_first = name_ko[0] if name_ko else "?"
+    
+    hint = {
+        "symbol": symbol,
+        "symbol_first": symbol[0] if symbol else "?",
+        "name_ko_first": ko_first,
+        "period": entry.get("period"),
+        "group": entry.get("group")
+    }
+    
+    return jsonify(hint)
+
+@app.route("/api/quiz/elements", methods=["GET"])
+def get_quiz_elements():
+    """퀴즈에 사용 가능한 모든 원소 목록을 반환하는 API"""
+    elements = []
+    for symbol, entry in elements_dict.items():
+        elements.append({
+            "symbol": symbol,
+            "name": entry.get("name"),
+            "period": entry.get("period"),
+            "group": entry.get("group")
+        })
+    return jsonify({"elements": elements, "count": len(elements)})
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
