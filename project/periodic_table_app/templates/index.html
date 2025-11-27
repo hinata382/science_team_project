@@ -197,6 +197,26 @@
             font-size: 14px;
         }
 
+        #spectrum-container {
+            margin-top: 15px;
+        }
+
+        #spectrum-container p {
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        #spectrumCanvas {
+            width: 100%;
+            height: 120px;
+            border: 2px solid #34495e;
+            border-radius: 4px;
+            background-color: #000;
+            display: block;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
         /* --- Tooltip Styles --- */
         .tooltip {
             visibility: hidden;
@@ -421,83 +441,216 @@
                 <canvas id="atomCanvas"></canvas>
             </div>
             <div id="atom-info" class="text-left p-3 border border-gray-200 rounded-lg">
-                <p><strong>선택된 원소:</strong> 원소를 클릭하여 원자 모형을 확인하세요.</p>
+                <div id="element-info">
+                    <p><strong>선택된 원소:</strong> 원소를 클릭하여 원자 모형을 확인하세요.</p>
+                </div>
+                <div id="spectrum-container" style="margin-top: 15px;">
+                    <p><strong>선 스펙트럼:</strong></p>
+                    <canvas id="spectrumCanvas" style="width: 100%; height: 120px; border: 1px solid #ddd; border-radius: 4px; background: #000; display: block;"></canvas>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- JavaScript Logic -->
     <script>
+        // 파장(nm)을 RGB 색상으로 변환하는 함수
+        function wavelengthToRGB(wavelength) {
+            let r, g, b, alpha;
+            const wl = wavelength;
+            
+            if (wl >= 380 && wl < 440) {
+                r = -(wl - 440) / (440 - 380);
+                g = 0.0;
+                b = 1.0;
+            } else if (wl >= 440 && wl < 490) {
+                r = 0.0;
+                g = (wl - 440) / (490 - 440);
+                b = 1.0;
+            } else if (wl >= 490 && wl < 510) {
+                r = 0.0;
+                g = 1.0;
+                b = -(wl - 510) / (510 - 490);
+            } else if (wl >= 510 && wl < 580) {
+                r = (wl - 510) / (580 - 510);
+                g = 1.0;
+                b = 0.0;
+            } else if (wl >= 580 && wl < 645) {
+                r = 1.0;
+                g = -(wl - 645) / (645 - 580);
+                b = 0.0;
+            } else if (wl >= 645 && wl <= 780) {
+                r = 1.0;
+                g = 0.0;
+                b = 0.0;
+            } else {
+                r = 0.0;
+                g = 0.0;
+                b = 0.0;
+            }
+            
+            // 감쇠 (가시 범위 외)
+            if (wl > 700) {
+                alpha = (780 - wl) / (780 - 700);
+            } else if (wl < 420) {
+                alpha = (wl - 380) / (420 - 380);
+            } else {
+                alpha = 1.0;
+            }
+            
+            r = Math.round(r * 255 * alpha);
+            g = Math.round(g * 255 * alpha);
+            b = Math.round(b * 255 * alpha);
+            
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
         const elements = {
-            "H": { Z: 1, name: "수소", group: 1, period: 1, mass: 1.008, shells: [1], category: "nonmetal" },
-            "He": { Z: 2, name: "헬륨", group: 18, period: 1, mass: 4.003, shells: [2], category: "noble-gas" },
-            "Li": { Z: 3, name: "리튬", group: 1, period: 2, mass: 6.94, shells: [2, 1], category: "alkali-metal" },
-            "Be": { Z: 4, name: "베릴륨", group: 2, period: 2, mass: 9.012, shells: [2, 2], category: "alkaline-earth-metal" },
-            "B": { Z: 5, name: "붕소", group: 13, period: 2, mass: 10.81, shells: [2, 3], category: "metalloid" },
-            "C": { Z: 6, name: "탄소", group: 14, period: 2, mass: 12.01, shells: [2, 4], category: "nonmetal" },
-            "N": { Z: 7, name: "질소", group: 15, period: 2, mass: 14.01, shells: [2, 5], category: "nonmetal" },
-            "O": { Z: 8, name: "산소", group: 16, period: 2, mass: 16.00, shells: [2, 6], category: "nonmetal" },
-            "F": { Z: 9, name: "플루오린", group: 17, period: 2, mass: 19.00, shells: [2, 7], category: "halogen" },
-            "Ne": { Z: 10, name: "네온", group: 18, period: 2, mass: 20.18, shells: [2, 8], category: "noble-gas" },
-            "Na": { Z: 11, name: "나트륨", group: 1, period: 3, mass: 22.99, shells: [2, 8, 1], category: "alkali-metal" },
-            "Mg": { Z: 12, name: "마그네슘", group: 2, period: 3, mass: 24.31, shells: [2, 8, 2], category: "alkaline-earth-metal" },
-            "Al": { Z: 13, name: "알루미늄", group: 13, period: 3, mass: 26.98, shells: [2, 8, 3], category: "post-transition-metal" },
-            "Si": { Z: 14, name: "규소", group: 14, period: 3, mass: 28.09, shells: [2, 8, 4], category: "metalloid" },
-            "P": { Z: 15, name: "인", group: 15, period: 3, mass: 30.97, shells: [2, 8, 5], category: "nonmetal" },
-            "S": { Z: 16, name: "황", group: 16, period: 3, mass: 32.06, shells: [2, 8, 6], category: "nonmetal" },
-            "Cl": { Z: 17, name: "염소", group: 17, period: 3, mass: 35.45, shells: [2, 8, 7], category: "halogen" },
-            "Ar": { Z: 18, name: "아르곤", group: 18, period: 3, mass: 39.95, shells: [2, 8, 8], category: "noble-gas" },
-            "K": { Z: 19, name: "칼륨", group: 1, period: 4, mass: 39.10, shells: [2, 8, 8, 1], category: "alkali-metal" },
-            "Ca": { Z: 20, name: "칼슘", group: 2, period: 4, mass: 40.08, shells: [2, 8, 8, 2], category: "alkaline-earth-metal" },
+            "H": { Z: 1, name: "수소", group: 1, period: 1, mass: 1.008, shells: [1], category: "nonmetal", spectrum: [656.3, 486.1, 434.0, 410.2] },
+            "He": { Z: 2, name: "헬륨", group: 18, period: 1, mass: 4.003, shells: [2], category: "noble-gas", spectrum: [587.6, 501.6, 447.1, 388.9] },
+            "Li": { Z: 3, name: "리튬", group: 1, period: 2, mass: 6.94, shells: [2, 1], category: "alkali-metal", spectrum: [670.8, 610.4] },
+            "Be": { Z: 4, name: "베릴륨", group: 2, period: 2, mass: 9.012, shells: [2, 2], category: "alkaline-earth-metal", spectrum: [234.9, 313.0] },
+            "B": { Z: 5, name: "붕소", group: 13, period: 2, mass: 10.81, shells: [2, 3], category: "metalloid", spectrum: [249.7, 345.1] },
+            "C": { Z: 6, name: "탄소", group: 14, period: 2, mass: 12.01, shells: [2, 4], category: "nonmetal", spectrum: [426.7, 588.9, 658.3] },
+            "N": { Z: 7, name: "질소", group: 15, period: 2, mass: 14.01, shells: [2, 5], category: "nonmetal", spectrum: [648.2, 742.4, 818.5] },
+            "O": { Z: 8, name: "산소", group: 16, period: 2, mass: 16.00, shells: [2, 6], category: "nonmetal", spectrum: [777.2, 844.6] },
+            "F": { Z: 9, name: "플루오린", group: 17, period: 2, mass: 19.00, shells: [2, 7], category: "halogen", spectrum: [685.6, 687.0] },
+            "Ne": { Z: 10, name: "네온", group: 18, period: 2, mass: 20.18, shells: [2, 8], category: "noble-gas", spectrum: [585.2, 588.2, 640.2] },
+            "Na": { Z: 11, name: "나트륨", group: 1, period: 3, mass: 22.99, shells: [2, 8, 1], category: "alkali-metal", spectrum: [589.0, 589.6] },
+            "Mg": { Z: 12, name: "마그네슘", group: 2, period: 3, mass: 24.31, shells: [2, 8, 2], category: "alkaline-earth-metal", spectrum: [285.2, 383.8] },
+            "Al": { Z: 13, name: "알루미늄", group: 13, period: 3, mass: 26.98, shells: [2, 8, 3], category: "post-transition-metal", spectrum: [396.2, 394.4] },
+            "Si": { Z: 14, name: "규소", group: 14, period: 3, mass: 28.09, shells: [2, 8, 4], category: "metalloid", spectrum: [251.6, 288.2] },
+            "P": { Z: 15, name: "인", group: 15, period: 3, mass: 30.97, shells: [2, 8, 5], category: "nonmetal", spectrum: [213.6, 214.9] },
+            "S": { Z: 16, name: "황", group: 16, period: 3, mass: 32.06, shells: [2, 8, 6], category: "nonmetal", spectrum: [180.7, 182.0] },
+            "Cl": { Z: 17, name: "염소", group: 17, period: 3, mass: 35.45, shells: [2, 8, 7], category: "halogen", spectrum: [134.7, 136.3] },
+            "Ar": { Z: 18, name: "아르곤", group: 18, period: 3, mass: 39.95, shells: [2, 8, 8], category: "noble-gas", spectrum: [750.4, 763.5] },
+            "K": { Z: 19, name: "칼륨", group: 1, period: 4, mass: 39.10, shells: [2, 8, 8, 1], category: "alkali-metal", spectrum: [766.5, 769.9] },
+            "Ca": { Z: 20, name: "칼슘", group: 2, period: 4, mass: 40.08, shells: [2, 8, 8, 2], category: "alkaline-earth-metal", spectrum: [422.7, 393.4, 396.8] },
             // 4주기 전이 금속 (대표적인 2, 8, 8, x 구조 사용, 실제 오비탈 복잡성 단순화)
-            "Sc": { Z: 21, name: "스칸듐", group: 3, period: 4, mass: 44.96, shells: [2, 8, 9, 2], category: "transition-metal" },
-            "Ti": { Z: 22, name: "티타늄", group: 4, period: 4, mass: 47.87, shells: [2, 8, 10, 2], category: "transition-metal" },
-            "V": { Z: 23, name: "바나듐", group: 5, period: 4, mass: 50.94, shells: [2, 8, 11, 2], category: "transition-metal" },
-            "Cr": { Z: 24, name: "크롬", group: 6, period: 4, mass: 52.00, shells: [2, 8, 13, 1], category: "transition-metal" }, // 예외: [2, 8, 13, 1]
-            "Mn": { Z: 25, name: "망가니즈", group: 7, period: 4, mass: 54.94, shells: [2, 8, 13, 2], category: "transition-metal" },
-            "Fe": { Z: 26, name: "철", group: 8, period: 4, mass: 55.85, shells: [2, 8, 14, 2], category: "transition-metal" },
-            "Co": { Z: 27, name: "코발트", group: 9, period: 4, mass: 58.93, shells: [2, 8, 15, 2], category: "transition-metal" },
-            "Ni": { Z: 28, name: "니켈", group: 10, period: 4, mass: 58.69, shells: [2, 8, 16, 2], category: "transition-metal" },
-            "Cu": { Z: 29, name: "구리", group: 11, period: 4, mass: 63.55, shells: [2, 8, 18, 1], category: "transition-metal" }, // 예외: [2, 8, 18, 1]
-            "Zn": { Z: 30, name: "아연", group: 12, period: 4, mass: 65.38, shells: [2, 8, 18, 2], category: "transition-metal" },
-            "Ga": { Z: 31, name: "갈륨", group: 13, period: 4, mass: 69.72, shells: [2, 8, 18, 3], category: "post-transition-metal" },
-            "Ge": { Z: 32, name: "저마늄", group: 14, period: 4, mass: 72.63, shells: [2, 8, 18, 4], category: "metalloid" },
-            "As": { Z: 33, name: "비소", group: 15, period: 4, mass: 74.92, shells: [2, 8, 18, 5], category: "metalloid" },
-            "Se": { Z: 34, name: "셀레늄", group: 16, period: 4, mass: 78.97, shells: [2, 8, 18, 6], category: "nonmetal" },
-            "Br": { Z: 35, name: "브로민", group: 17, period: 4, mass: 79.90, shells: [2, 8, 18, 7], category: "halogen" },
-            "Kr": { Z: 36, name: "크립톤", group: 18, period: 4, mass: 83.80, shells: [2, 8, 18, 8], category: "noble-gas" },
+            "Sc": { Z: 21, name: "스칸듐", group: 3, period: 4, mass: 44.96, shells: [2, 8, 9, 2], category: "transition-metal", spectrum: [363.1, 364.3] },
+            "Ti": { Z: 22, name: "티타늄", group: 4, period: 4, mass: 47.87, shells: [2, 8, 10, 2], category: "transition-metal", spectrum: [365.3, 364.3] },
+            "V": { Z: 23, name: "바나듐", group: 5, period: 4, mass: 50.94, shells: [2, 8, 11, 2], category: "transition-metal", spectrum: [318.4, 437.9] },
+            "Cr": { Z: 24, name: "크롬", group: 6, period: 4, mass: 52.00, shells: [2, 8, 13, 1], category: "transition-metal", spectrum: [425.4, 427.5, 429.0] }, // 예외: [2, 8, 13, 1]
+            "Mn": { Z: 25, name: "망가니즈", group: 7, period: 4, mass: 54.94, shells: [2, 8, 13, 2], category: "transition-metal", spectrum: [403.1, 403.3, 403.4] },
+            "Fe": { Z: 26, name: "철", group: 8, period: 4, mass: 55.85, shells: [2, 8, 14, 2], category: "transition-metal", spectrum: [371.9, 373.7, 374.6] },
+            "Co": { Z: 27, name: "코발트", group: 9, period: 4, mass: 58.93, shells: [2, 8, 15, 2], category: "transition-metal", spectrum: [345.4, 346.6] },
+            "Ni": { Z: 28, name: "니켈", group: 10, period: 4, mass: 58.69, shells: [2, 8, 16, 2], category: "transition-metal", spectrum: [341.5, 346.2] },
+            "Cu": { Z: 29, name: "구리", group: 11, period: 4, mass: 63.55, shells: [2, 8, 18, 1], category: "transition-metal", spectrum: [324.8, 327.4] }, // 예외: [2, 8, 18, 1]
+            "Zn": { Z: 30, name: "아연", group: 12, period: 4, mass: 65.38, shells: [2, 8, 18, 2], category: "transition-metal", spectrum: [213.9, 307.6] },
+            "Ga": { Z: 31, name: "갈륨", group: 13, period: 4, mass: 69.72, shells: [2, 8, 18, 3], category: "post-transition-metal", spectrum: [403.3, 417.2] },
+            "Ge": { Z: 32, name: "저마늄", group: 14, period: 4, mass: 72.63, shells: [2, 8, 18, 4], category: "metalloid", spectrum: [265.1, 303.9] },
+            "As": { Z: 33, name: "비소", group: 15, period: 4, mass: 74.92, shells: [2, 8, 18, 5], category: "metalloid", spectrum: [193.7, 197.2] },
+            "Se": { Z: 34, name: "셀레늄", group: 16, period: 4, mass: 78.97, shells: [2, 8, 18, 6], category: "nonmetal", spectrum: [196.0, 203.9] },
+            "Br": { Z: 35, name: "브로민", group: 17, period: 4, mass: 79.90, shells: [2, 8, 18, 7], category: "halogen", spectrum: [148.9, 157.6] },
+            "Kr": { Z: 36, name: "크립톤", group: 18, period: 4, mass: 83.80, shells: [2, 8, 18, 8], category: "noble-gas", spectrum: [760.2, 810.4] },
             
-            // 5주기 (대표 원소만 추가, 나머지는 4주기와 유사한 패턴)
-            "Rb": { Z: 37, name: "루비듐", group: 1, period: 5, mass: 85.47, shells: [2, 8, 18, 8, 1], category: "alkali-metal" },
-            "Sr": { Z: 38, name: "스트론튬", group: 2, period: 5, mass: 87.62, shells: [2, 8, 18, 8, 2], category: "alkaline-earth-metal" },
-            "Y": { Z: 39, name: "이트륨", group: 3, period: 5, mass: 88.91, shells: [2, 8, 18, 9, 2], category: "transition-metal" },
-            "Cd": { Z: 48, name: "카드뮴", group: 12, period: 5, mass: 112.4, shells: [2, 8, 18, 18, 2], category: "transition-metal" },
-            "In": { Z: 49, name: "인듐", group: 13, period: 5, mass: 114.8, shells: [2, 8, 18, 18, 3], category: "post-transition-metal" },
-            "Xe": { Z: 54, name: "크세논", group: 18, period: 5, mass: 131.3, shells: [2, 8, 18, 18, 8], category: "noble-gas" },
+            // 5주기
+            "Rb": { Z: 37, name: "루비듐", group: 1, period: 5, mass: 85.47, shells: [2, 8, 18, 8, 1], category: "alkali-metal", spectrum: [780.0, 794.8] },
+            "Sr": { Z: 38, name: "스트론튬", group: 2, period: 5, mass: 87.62, shells: [2, 8, 18, 8, 2], category: "alkaline-earth-metal", spectrum: [460.7, 421.6] },
+            "Y": { Z: 39, name: "이트륨", group: 3, period: 5, mass: 88.91, shells: [2, 8, 18, 9, 2], category: "transition-metal", spectrum: [360.1, 361.1] },
+            "Zr": { Z: 40, name: "지르코늄", group: 4, period: 5, mass: 91.22, shells: [2, 8, 18, 10, 2], category: "transition-metal", spectrum: [350.0, 360.1] },
+            "Nb": { Z: 41, name: "나이오븀", group: 5, period: 5, mass: 92.91, shells: [2, 8, 18, 12, 1], category: "transition-metal", spectrum: [405.9, 415.4] },
+            "Mo": { Z: 42, name: "몰리브데넘", group: 6, period: 5, mass: 95.96, shells: [2, 8, 18, 13, 1], category: "transition-metal", spectrum: [379.8, 386.4] },
+            "Tc": { Z: 43, name: "테크네튬", group: 7, period: 5, mass: 98.0, shells: [2, 8, 18, 13, 2], category: "transition-metal", spectrum: [429.7, 426.2] },
+            "Ru": { Z: 44, name: "루테늄", group: 8, period: 5, mass: 101.1, shells: [2, 8, 18, 15, 1], category: "transition-metal", spectrum: [349.9, 372.7] },
+            "Rh": { Z: 45, name: "로듐", group: 9, period: 5, mass: 102.9, shells: [2, 8, 18, 16, 1], category: "transition-metal", spectrum: [343.5, 369.2] },
+            "Pd": { Z: 46, name: "팔라듐", group: 10, period: 5, mass: 106.4, shells: [2, 8, 18, 18, 0], category: "transition-metal", spectrum: [340.5, 361.0] },
+            "Ag": { Z: 47, name: "은", group: 11, period: 5, mass: 107.9, shells: [2, 8, 18, 18, 1], category: "transition-metal", spectrum: [328.1, 338.3] },
+            "Cd": { Z: 48, name: "카드뮴", group: 12, period: 5, mass: 112.4, shells: [2, 8, 18, 18, 2], category: "transition-metal", spectrum: [228.8, 326.1] },
+            "In": { Z: 49, name: "인듐", group: 13, period: 5, mass: 114.8, shells: [2, 8, 18, 18, 3], category: "post-transition-metal", spectrum: [451.1, 410.2] },
+            "Sn": { Z: 50, name: "주석", group: 14, period: 5, mass: 118.7, shells: [2, 8, 18, 18, 4], category: "post-transition-metal", spectrum: [286.3, 303.4] },
+            "Sb": { Z: 51, name: "안티모니", group: 15, period: 5, mass: 121.8, shells: [2, 8, 18, 18, 5], category: "metalloid", spectrum: [259.8, 267.2] },
+            "Te": { Z: 52, name: "텔루륨", group: 16, period: 5, mass: 127.6, shells: [2, 8, 18, 18, 6], category: "metalloid", spectrum: [214.3, 225.9] },
+            "I": { Z: 53, name: "아이오딘", group: 17, period: 5, mass: 126.9, shells: [2, 8, 18, 18, 7], category: "halogen", spectrum: [206.2, 183.0] },
+            "Xe": { Z: 54, name: "크세논", group: 18, period: 5, mass: 131.3, shells: [2, 8, 18, 18, 8], category: "noble-gas", spectrum: [823.2, 828.0, 834.7] },
 
-            // 6주기 (대표 원소만 추가, 란타넘족은 복잡하므로 6주기 3족의 대표 원소만 시뮬레이션)
-            "Cs": { Z: 55, name: "세슘", group: 1, period: 6, mass: 132.9, shells: [2, 8, 18, 18, 8, 1], category: "alkali-metal" },
-            "Ba": { Z: 56, name: "바륨", group: 2, period: 6, mass: 137.3, shells: [2, 8, 18, 18, 8, 2], category: "alkaline-earth-metal" },
-            "La": { Z: 57, name: "란타넘", group: 3, period: 6, mass: 138.9, shells: [2, 8, 18, 18, 9, 2], category: "lanthanide" },
-            "Au": { Z: 79, name: "금", group: 11, period: 6, mass: 197.0, shells: [2, 8, 18, 32, 17, 2], category: "transition-metal" }, // 근사치 [2, 8, 18, 32, 18, 1] 사용 가능
-            "Hg": { Z: 80, name: "수은", group: 12, period: 6, mass: 200.6, shells: [2, 8, 18, 32, 18, 2], category: "transition-metal" },
-            "Rn": { Z: 86, name: "라돈", group: 18, period: 6, mass: 222.0, shells: [2, 8, 18, 32, 18, 8], category: "noble-gas" },
+            // 6주기
+            "Cs": { Z: 55, name: "세슘", group: 1, period: 6, mass: 132.9, shells: [2, 8, 18, 18, 8, 1], category: "alkali-metal", spectrum: [852.1, 894.3] },
+            "Ba": { Z: 56, name: "바륨", group: 2, period: 6, mass: 137.3, shells: [2, 8, 18, 18, 8, 2], category: "alkaline-earth-metal", spectrum: [553.5, 455.4] },
+            "La": { Z: 57, name: "란타넘", group: 3, period: 6, mass: 138.9, shells: [2, 8, 18, 18, 9, 2], category: "lanthanide", spectrum: [550.1, 579.1] },
+            "Hf": { Z: 72, name: "하프늄", group: 4, period: 6, mass: 178.5, shells: [2, 8, 18, 32, 10, 2], category: "transition-metal", spectrum: [307.3, 282.0] },
+            "Ta": { Z: 73, name: "탄탈럼", group: 5, period: 6, mass: 180.9, shells: [2, 8, 18, 32, 11, 2], category: "transition-metal", spectrum: [271.5, 277.6] },
+            "W": { Z: 74, name: "텅스텐", group: 6, period: 6, mass: 183.8, shells: [2, 8, 18, 32, 12, 2], category: "transition-metal", spectrum: [400.9, 429.5] },
+            "Re": { Z: 75, name: "레늄", group: 7, period: 6, mass: 186.2, shells: [2, 8, 18, 32, 13, 2], category: "transition-metal", spectrum: [346.0, 346.5] },
+            "Os": { Z: 76, name: "오스뮴", group: 8, period: 6, mass: 190.2, shells: [2, 8, 18, 32, 14, 2], category: "transition-metal", spectrum: [290.9, 442.0] },
+            "Ir": { Z: 77, name: "이리듐", group: 9, period: 6, mass: 192.2, shells: [2, 8, 18, 32, 15, 2], category: "transition-metal", spectrum: [263.9, 284.9] },
+            "Pt": { Z: 78, name: "백금", group: 10, period: 6, mass: 195.1, shells: [2, 8, 18, 32, 17, 1], category: "transition-metal", spectrum: [265.9, 306.5] },
+            "Au": { Z: 79, name: "금", group: 11, period: 6, mass: 197.0, shells: [2, 8, 18, 32, 18, 1], category: "transition-metal", spectrum: [267.6, 242.8] },
+            "Hg": { Z: 80, name: "수은", group: 12, period: 6, mass: 200.6, shells: [2, 8, 18, 32, 18, 2], category: "transition-metal", spectrum: [253.7, 365.0] },
+            "Tl": { Z: 81, name: "탈륨", group: 13, period: 6, mass: 204.4, shells: [2, 8, 18, 32, 18, 3], category: "post-transition-metal", spectrum: [377.6, 535.0] },
+            "Pb": { Z: 82, name: "납", group: 14, period: 6, mass: 207.2, shells: [2, 8, 18, 32, 18, 4], category: "post-transition-metal", spectrum: [283.3, 405.8] },
+            "Bi": { Z: 83, name: "비스무트", group: 15, period: 6, mass: 209.0, shells: [2, 8, 18, 32, 18, 5], category: "post-transition-metal", spectrum: [306.8, 472.2] },
+            "Po": { Z: 84, name: "폴로늄", group: 16, period: 6, mass: 209.0, shells: [2, 8, 18, 32, 18, 6], category: "post-transition-metal", spectrum: [418.1, 520.9] },
+            "At": { Z: 85, name: "아스타틴", group: 17, period: 6, mass: 210.0, shells: [2, 8, 18, 32, 18, 7], category: "halogen", spectrum: [] },
+            "Rn": { Z: 86, name: "라돈", group: 18, period: 6, mass: 222.0, shells: [2, 8, 18, 32, 18, 8], category: "noble-gas", spectrum: [706.5, 727.3] },
 
-            // 7주기 (대표 원소만 추가)
-            "Fr": { Z: 87, name: "프랑슘", group: 1, period: 7, mass: 223.0, shells: [2, 8, 18, 32, 18, 8, 1], category: "alkali-metal" },
-            "Ra": { Z: 88, name: "라듐", group: 2, period: 7, mass: 226.0, shells: [2, 8, 18, 32, 18, 8, 2], category: "alkaline-earth-metal" },
-            "Ac": { Z: 89, name: "악티늄", group: 3, period: 7, mass: 227.0, shells: [2, 8, 18, 32, 18, 9, 2], category: "actinide" },
-            "Og": { Z: 118, name: "오가네손", group: 18, period: 7, mass: 294.0, shells: [2, 8, 18, 32, 32, 18, 8], category: "noble-gas" },
+            // 7주기
+            "Fr": { Z: 87, name: "프랑슘", group: 1, period: 7, mass: 223.0, shells: [2, 8, 18, 32, 18, 8, 1], category: "alkali-metal", spectrum: [817.2, 894.3] },
+            "Ra": { Z: 88, name: "라듐", group: 2, period: 7, mass: 226.0, shells: [2, 8, 18, 32, 18, 8, 2], category: "alkaline-earth-metal", spectrum: [381.4, 468.2] },
+            "Ac": { Z: 89, name: "악티늄", group: 3, period: 7, mass: 227.0, shells: [2, 8, 18, 32, 18, 9, 2], category: "actinide", spectrum: [440.0, 501.7] },
+            "Rf": { Z: 104, name: "러더퍼듐", group: 4, period: 7, mass: 267.0, shells: [2, 8, 18, 32, 32, 10, 2], category: "transition-metal", spectrum: [] },
+            "Db": { Z: 105, name: "더브늄", group: 5, period: 7, mass: 268.0, shells: [2, 8, 18, 32, 32, 11, 2], category: "transition-metal", spectrum: [] },
+            "Sg": { Z: 106, name: "시보귬", group: 6, period: 7, mass: 269.0, shells: [2, 8, 18, 32, 32, 12, 2], category: "transition-metal", spectrum: [] },
+            "Bh": { Z: 107, name: "보륨", group: 7, period: 7, mass: 270.0, shells: [2, 8, 18, 32, 32, 13, 2], category: "transition-metal", spectrum: [] },
+            "Hs": { Z: 108, name: "하슘", group: 8, period: 7, mass: 269.0, shells: [2, 8, 18, 32, 32, 14, 2], category: "transition-metal", spectrum: [] },
+            "Mt": { Z: 109, name: "마이트너륨", group: 9, period: 7, mass: 278.0, shells: [2, 8, 18, 32, 32, 15, 2], category: "transition-metal", spectrum: [] },
+            "Ds": { Z: 110, name: "다름슈타튬", group: 10, period: 7, mass: 281.0, shells: [2, 8, 18, 32, 32, 17, 1], category: "transition-metal", spectrum: [] },
+            "Rg": { Z: 111, name: "뢴트게늄", group: 11, period: 7, mass: 282.0, shells: [2, 8, 18, 32, 32, 18, 1], category: "transition-metal", spectrum: [] },
+            "Cn": { Z: 112, name: "코페르니슘", group: 12, period: 7, mass: 285.0, shells: [2, 8, 18, 32, 32, 18, 2], category: "transition-metal", spectrum: [] },
+            "Nh": { Z: 113, name: "니호늄", group: 13, period: 7, mass: 286.0, shells: [2, 8, 18, 32, 32, 18, 3], category: "post-transition-metal", spectrum: [] },
+            "Fl": { Z: 114, name: "플레로븀", group: 14, period: 7, mass: 289.0, shells: [2, 8, 18, 32, 32, 18, 4], category: "post-transition-metal", spectrum: [] },
+            "Mc": { Z: 115, name: "모스코븀", group: 15, period: 7, mass: 290.0, shells: [2, 8, 18, 32, 32, 18, 5], category: "post-transition-metal", spectrum: [] },
+            "Lv": { Z: 116, name: "리버모륨", group: 16, period: 7, mass: 293.0, shells: [2, 8, 18, 32, 32, 18, 6], category: "post-transition-metal", spectrum: [] },
+            "Ts": { Z: 117, name: "테네신", group: 17, period: 7, mass: 294.0, shells: [2, 8, 18, 32, 32, 18, 7], category: "halogen", spectrum: [] },
+            "Og": { Z: 118, name: "오가네손", group: 18, period: 7, mass: 294.0, shells: [2, 8, 18, 32, 32, 18, 8], category: "noble-gas", spectrum: [] },
             
-            // 데이터가 없는 원소는 더미 객체로 채워서 검색 및 하이라이트 기능을 유지합니다.
-            // 란타넘족과 악티늄족의 나머지 원소들도 데이터 추가 가능하지만, 시뮬레이션을 위해 일부만 명시했습니다.
+            // 란타넘족 (Lanthanides)
+            "Ce": { Z: 58, name: "세륨", group: 0, period: 6, mass: 140.1, shells: [2, 8, 18, 19, 9, 2], category: "lanthanide", spectrum: [418.7, 446.0] },
+            "Pr": { Z: 59, name: "프라세오디뮴", group: 0, period: 6, mass: 140.9, shells: [2, 8, 18, 21, 8, 2], category: "lanthanide", spectrum: [444.0, 495.1] },
+            "Nd": { Z: 60, name: "네오디뮴", group: 0, period: 6, mass: 144.2, shells: [2, 8, 18, 22, 8, 2], category: "lanthanide", spectrum: [463.4, 471.9] },
+            "Pm": { Z: 61, name: "프로메튬", group: 0, period: 6, mass: 145.0, shells: [2, 8, 18, 23, 8, 2], category: "lanthanide", spectrum: [490.0, 520.0] },
+            "Sm": { Z: 62, name: "사마륨", group: 0, period: 6, mass: 150.4, shells: [2, 8, 18, 24, 8, 2], category: "lanthanide", spectrum: [443.4, 476.0] },
+            "Eu": { Z: 63, name: "유로퓸", group: 0, period: 6, mass: 152.0, shells: [2, 8, 18, 25, 8, 2], category: "lanthanide", spectrum: [459.4, 462.7] },
+            "Gd": { Z: 64, name: "가돌리늄", group: 0, period: 6, mass: 157.3, shells: [2, 8, 18, 25, 9, 2], category: "lanthanide", spectrum: [342.2, 359.5] },
+            "Tb": { Z: 65, name: "터븀", group: 0, period: 6, mass: 158.9, shells: [2, 8, 18, 27, 8, 2], category: "lanthanide", spectrum: [431.9, 423.4] },
+            "Dy": { Z: 66, name: "디스프로슘", group: 0, period: 6, mass: 162.5, shells: [2, 8, 18, 28, 8, 2], category: "lanthanide", spectrum: [421.2, 404.6] },
+            "Ho": { Z: 67, name: "홀뮴", group: 0, period: 6, mass: 164.9, shells: [2, 8, 18, 29, 8, 2], category: "lanthanide", spectrum: [410.4, 416.3] },
+            "Er": { Z: 68, name: "어븀", group: 0, period: 6, mass: 167.3, shells: [2, 8, 18, 30, 8, 2], category: "lanthanide", spectrum: [400.8, 415.1] },
+            "Tm": { Z: 69, name: "툴륨", group: 0, period: 6, mass: 168.9, shells: [2, 8, 18, 31, 8, 2], category: "lanthanide", spectrum: [384.8, 410.6] },
+            "Yb": { Z: 70, name: "이터븀", group: 0, period: 6, mass: 173.0, shells: [2, 8, 18, 32, 8, 2], category: "lanthanide", spectrum: [398.8, 369.4] },
+            "Lu": { Z: 71, name: "루테튬", group: 0, period: 6, mass: 175.0, shells: [2, 8, 18, 32, 9, 2], category: "lanthanide", spectrum: [350.7, 261.5] },
+            
+            // 악티늄족 (Actinides)
+            "Th": { Z: 90, name: "토륨", group: 0, period: 7, mass: 232.0, shells: [2, 8, 18, 32, 18, 10, 2], category: "actinide", spectrum: [401.9, 408.6] },
+            "Pa": { Z: 91, name: "프로트악티늄", group: 0, period: 7, mass: 231.0, shells: [2, 8, 18, 32, 20, 9, 2], category: "actinide", spectrum: [415.8, 408.6] },
+            "U": { Z: 92, name: "우라늄", group: 0, period: 7, mass: 238.0, shells: [2, 8, 18, 32, 21, 9, 2], category: "actinide", spectrum: [424.4, 414.2] },
+            "Np": { Z: 93, name: "넵투늄", group: 0, period: 7, mass: 237.0, shells: [2, 8, 18, 32, 22, 9, 2], category: "actinide", spectrum: [434.2, 413.3] },
+            "Pu": { Z: 94, name: "플루토늄", group: 0, period: 7, mass: 244.0, shells: [2, 8, 18, 32, 24, 8, 2], category: "actinide", spectrum: [] },
+            "Am": { Z: 95, name: "아메리슘", group: 0, period: 7, mass: 243.0, shells: [2, 8, 18, 32, 25, 8, 2], category: "actinide", spectrum: [] },
+            "Cm": { Z: 96, name: "퀴륨", group: 0, period: 7, mass: 247.0, shells: [2, 8, 18, 32, 25, 9, 2], category: "actinide", spectrum: [] },
+            "Bk": { Z: 97, name: "버클륨", group: 0, period: 7, mass: 247.0, shells: [2, 8, 18, 32, 27, 8, 2], category: "actinide", spectrum: [] },
+            "Cf": { Z: 98, name: "캘리포늄", group: 0, period: 7, mass: 251.0, shells: [2, 8, 18, 32, 28, 8, 2], category: "actinide", spectrum: [] },
+            "Es": { Z: 99, name: "아인슈타이늄", group: 0, period: 7, mass: 252.0, shells: [2, 8, 18, 32, 29, 8, 2], category: "actinide", spectrum: [] },
+            "Fm": { Z: 100, name: "페르뮴", group: 0, period: 7, mass: 257.0, shells: [2, 8, 18, 32, 30, 8, 2], category: "actinide", spectrum: [] },
+            "Md": { Z: 101, name: "멘델레븀", group: 0, period: 7, mass: 258.0, shells: [2, 8, 18, 32, 31, 8, 2], category: "actinide", spectrum: [] },
+            "No": { Z: 102, name: "노벨륨", group: 0, period: 7, mass: 259.0, shells: [2, 8, 18, 32, 32, 8, 2], category: "actinide", spectrum: [] },
+            "Lr": { Z: 103, name: "로렌슘", group: 0, period: 7, mass: 262.0, shells: [2, 8, 18, 32, 32, 9, 2], category: "actinide", spectrum: [] },
         };
 
         const tooltip = document.getElementById('tooltip');
         const canvas = document.getElementById('atomCanvas');
         const ctx = canvas.getContext('2d');
         const atomInfo = document.getElementById('atom-info');
+        const elementInfo = document.getElementById('element-info');
         const periodicTable = document.getElementById('periodic-table');
+        const spectrumCanvas = document.getElementById('spectrumCanvas');
+        const spectrumContainer = document.getElementById('spectrum-container');
+        const spectrumCtx = spectrumCanvas ? spectrumCanvas.getContext('2d') : null;
+        
+        // 애니메이션 변수
+        let currentElement = null;
+        let animationFrameId = null;
+        let electronAngles = []; // 각 껍질의 전자 각도 배열
 
         // 초기 Atom Canvas 크기 설정 (반응형 대응)
         function resizeCanvas() {
@@ -505,7 +658,9 @@
             canvas.width = container.clientWidth;
             canvas.height = container.clientHeight;
             // 크기 변경 후 현재 원소를 다시 그립니다.
-            if (canvas.dataset.currentSymbol) {
+            if (currentElement) {
+                drawAtom(currentElement);
+            } else if (canvas.dataset.currentSymbol) {
                 const element = elements[canvas.dataset.currentSymbol];
                 if (element) {
                     drawAtom(element);
@@ -515,28 +670,213 @@
         window.addEventListener('load', resizeCanvas);
         window.addEventListener('resize', resizeCanvas);
 
+        // 스펙트럼 Canvas 크기 설정
+        function resizeSpectrumCanvas() {
+            if (!spectrumCanvas || !spectrumContainer) return;
+            const containerWidth = spectrumContainer.clientWidth;
+            if (containerWidth > 0) {
+                spectrumCanvas.width = containerWidth;
+                spectrumCanvas.height = 120;
+            }
+        }
 
-        // --- 1. 원자 시뮬레이션 함수 ---
+        // 선 스펙트럼 그리기 함수
+        function drawSpectrum(spectrum) {
+            if (!spectrumCanvas || !spectrumCtx || !spectrumContainer) return;
+            
+            // 스펙트럼이 없으면 빈 검은 화면 표시
+            if (!spectrum || spectrum.length === 0) {
+                resizeSpectrumCanvas();
+                const width = spectrumCanvas.width || 400;
+                const height = spectrumCanvas.height || 120;
+                spectrumCtx.fillStyle = '#000';
+                spectrumCtx.fillRect(0, 0, width, height);
+                spectrumCtx.fillStyle = '#666';
+                spectrumCtx.font = '14px Arial';
+                spectrumCtx.textAlign = 'center';
+                spectrumCtx.fillText('스펙트럼 데이터 없음', width / 2, height / 2);
+                return;
+            }
+
+            // 크기 재조정
+            resizeSpectrumCanvas();
+            
+            // 크기가 설정되지 않았으면 기본값 사용
+            const width = spectrumCanvas.width || 400;
+            const height = spectrumCanvas.height || 120;
+            
+            // 배경을 검은색으로 채우기
+            spectrumCtx.fillStyle = '#000';
+            spectrumCtx.fillRect(0, 0, width, height);
+            
+            // 가시광선 영역 범위 (380nm ~ 780nm)
+            const minWavelength = 380;
+            const maxWavelength = 780;
+            
+            // 가시광선 그라데이션 배경 그리기 (상단)
+            const gradientHeight = height * 0.25;
+            for (let x = 0; x < width; x++) {
+                const wavelength = minWavelength + (maxWavelength - minWavelength) * (x / width);
+                const color = wavelengthToRGB(wavelength);
+                spectrumCtx.fillStyle = color;
+                spectrumCtx.fillRect(x, 0, 1, gradientHeight);
+            }
+            
+            // 선 스펙트럼 그리기
+            spectrum.forEach((wavelength, index) => {
+                let x;
+                let isVisible = false;
+                
+                if (wavelength >= minWavelength && wavelength <= maxWavelength) {
+                    // 가시광선 범위 내
+                    x = ((wavelength - minWavelength) / (maxWavelength - minWavelength)) * width;
+                    isVisible = true;
+                } else if (wavelength < minWavelength) {
+                    // 자외선 영역 (왼쪽)
+                    x = 5;
+                    isVisible = false;
+                } else {
+                    // 적외선 영역 (오른쪽)
+                    x = width - 5;
+                    isVisible = false;
+                }
+                
+                if (isVisible) {
+                    // 가시광선 범위 내의 선 - 밝고 두껍게
+                    const color = wavelengthToRGB(wavelength);
+                    
+                    // 글로우 효과를 위한 여러 선 그리기
+                    spectrumCtx.shadowColor = color;
+                    spectrumCtx.shadowBlur = 5;
+                    
+                    // 메인 수직선
+                    spectrumCtx.strokeStyle = color;
+                    spectrumCtx.lineWidth = 3;
+                    spectrumCtx.beginPath();
+                    spectrumCtx.moveTo(x, gradientHeight);
+                    spectrumCtx.lineTo(x, height - 25);
+                    spectrumCtx.stroke();
+                    
+                    // 글로우 제거
+                    spectrumCtx.shadowBlur = 0;
+                    
+                    // 파장 값 표시
+                    spectrumCtx.fillStyle = '#fff';
+                    spectrumCtx.font = '11px Arial';
+                    spectrumCtx.textAlign = 'center';
+                    
+                    // 텍스트 배경
+                    const text = Math.round(wavelength) + 'nm';
+                    const textWidth = spectrumCtx.measureText(text).width;
+                    spectrumCtx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                    spectrumCtx.fillRect(x - textWidth/2 - 3, height - 22, textWidth + 6, 14);
+                    
+                    // 텍스트
+                    spectrumCtx.fillStyle = '#fff';
+                    spectrumCtx.fillText(text, x, height - 10);
+                } else {
+                    // 가시광선 범위 밖의 선 - 회색 점선
+                    spectrumCtx.strokeStyle = '#666';
+                    spectrumCtx.lineWidth = 1.5;
+                    spectrumCtx.setLineDash([4, 4]);
+                    spectrumCtx.beginPath();
+                    spectrumCtx.moveTo(x, gradientHeight);
+                    spectrumCtx.lineTo(x, height - 25);
+                    spectrumCtx.stroke();
+                    spectrumCtx.setLineDash([]);
+                    
+                    // 파장 값 표시
+                    const text = Math.round(wavelength) + 'nm';
+                    spectrumCtx.fillStyle = '#888';
+                    spectrumCtx.font = '10px Arial';
+                    spectrumCtx.textAlign = wavelength < minWavelength ? 'left' : 'right';
+                    const offset = wavelength < minWavelength ? 8 : -8;
+                    spectrumCtx.fillText(text, x + offset, height - 10);
+                }
+            });
+            
+            // 축 레이블 추가
+            spectrumCtx.fillStyle = '#aaa';
+            spectrumCtx.font = '10px Arial';
+            spectrumCtx.textAlign = 'left';
+            spectrumCtx.fillText('380nm', 5, gradientHeight + 15);
+            spectrumCtx.textAlign = 'right';
+            spectrumCtx.fillText('780nm', width - 5, gradientHeight + 15);
+        }
+
+
+        // --- 1. 원자 시뮬레이션 함수 (애니메이션 포함) ---
         function drawAtom(element) {
-            const W = canvas.width;
-            const H = canvas.height;
-            const centerX = W / 2;
-            const centerY = H / 2;
-            ctx.clearRect(0, 0, W, H);
+            // 이전 애니메이션 중지
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
+            // 현재 원소 저장
+            currentElement = element;
             
             // 현재 원소 기호 저장 (resize 시 재사용)
             canvas.dataset.currentSymbol = element.Z ? element.symbol : null;
-
+            
+            // 전자 각도 초기화
+            electronAngles = [];
+            element.shells.forEach((electrons, shellIndex) => {
+                if (electrons === 0) {
+                    electronAngles.push([]);
+                    return;
+                }
+                const angles = [];
+                for (let i = 0; i < electrons; i++) {
+                    // 전자를 균등하게 배치하고 약간의 오프셋 추가
+                    angles.push((i / electrons) * Math.PI * 2 + shellIndex * 0.5);
+                }
+                electronAngles.push(angles);
+            });
 
             // 양성자, 중성자 수 계산 (근사치)
             const protons = element.Z;
             const neutrons = Math.round(element.mass) - protons;
 
+            // 3. 원소 정보 업데이트 (스펙트럼 컨테이너는 유지)
+            if (elementInfo) {
+                const infoHTML = `
+                    <p><strong>원소명:</strong> ${element.name} (${element.symbol})</p>
+                    <p><strong>원자 번호 (Z):</strong> ${element.Z}</p>
+                    <p><strong>양성자/전자 수:</strong> ${protons}개</p>
+                    <p><strong>중성자 수:</strong> ${neutrons}개 (근사)</p>
+                    <p><strong>전자 껍질:</strong> ${element.shells.join(', ')}</p>
+                `;
+                elementInfo.innerHTML = infoHTML;
+            }
+            
+            // 4. 선 스펙트럼 그리기
+            drawSpectrum(element.spectrum || []);
+            
+            // 5. 애니메이션 시작
+            animateAtom();
+        }
+        
+        // 애니메이션 루프
+        function animateAtom() {
+            if (!currentElement) return;
+            
+            const W = canvas.width;
+            const H = canvas.height;
+            const centerX = W / 2;
+            const centerY = H / 2;
+            
+            // 화면 지우기
+            ctx.clearRect(0, 0, W, H);
+            
+            // 양성자, 중성자 수 계산
+            const protons = currentElement.Z;
+            
             // 1. 핵 그리기
             const nucleusRadius = Math.min(W, H) * 0.1;
             ctx.beginPath();
             ctx.arc(centerX, centerY, nucleusRadius, 0, Math.PI * 2);
-            ctx.fillStyle = '#E74C3C'; // 붉은색 핵
+            ctx.fillStyle = '#E74C3C';
             ctx.fill();
 
             // 핵 정보 텍스트
@@ -544,50 +884,69 @@
             ctx.font = `${nucleusRadius * 0.4}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(element.symbol, centerX, centerY - nucleusRadius * 0.25);
+            ctx.fillText(currentElement.symbol, centerX, centerY - nucleusRadius * 0.25);
             ctx.fillText(`Z=${protons}`, centerX, centerY + nucleusRadius * 0.35);
 
+            // 2. 궤도(껍질) 및 전자 그리기
+            const shellCount = currentElement.shells.length;
+            const maxRadius = Math.min(W, H) / 2 * 0.85;
+            const electronSize = nucleusRadius * 0.15;
+            
+            // 최소 궤도 반지름: 핵 반지름 + 전자 크기 + 여유 공간
+            const minOrbitRadius = nucleusRadius + electronSize * 2 + 15;
+            
+            // 사용 가능한 공간 계산 (최소 반지름을 고려)
+            const availableRadius = maxRadius - minOrbitRadius;
+            
+            // 각 껍질 간격 계산
+            const radiusStep = shellCount > 1 ? availableRadius / (shellCount - 1) : 0;
 
-            // 2. 궤도(껍질) 그리기
-            const shellCount = element.shells.length;
-            const maxRadius = Math.min(W, H) / 2 * 0.85; // 캔버스 영역의 85%까지 궤도 허용
-            const radiusStep = maxRadius / (shellCount + 1);
+            currentElement.shells.forEach((electrons, shellIndex) => {
+                if (electrons === 0) return;
 
-            element.shells.forEach((electrons, shellIndex) => {
-                if (electrons === 0) return; // 전자가 없는 껍질은 그리지 않음
-
-                const radius = (shellIndex + 1) * radiusStep;
+                // 궤도 반지름 = 최소 반지름 + (껍질 인덱스 * 간격)
+                // 핵을 침범하지 않도록 보장
+                const radius = minOrbitRadius + (shellIndex * radiusStep);
 
                 // 궤도 라인
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(0, 0, 0, 0.2 + ${shellIndex * 0.1})`;
+                ctx.strokeStyle = `rgba(0, 0, 0, ${0.2 + shellIndex * 0.1})`;
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
 
-                // 궤도 내 전자 배치
-                for (let i = 0; i < electrons; i++) {
-                    const angle = (i / electrons) * Math.PI * 2;
-                    const electronX = centerX + radius * Math.cos(angle);
-                    const electronY = centerY + radius * Math.sin(angle);
+                // 전자 회전 애니메이션
+                // 안쪽 껍질이 더 빠르게 회전하도록 속도 조정
+                const rotationSpeed = (1.0 - shellIndex * 0.15) * 0.02;
+                
+                if (electronAngles[shellIndex]) {
+                    electronAngles[shellIndex].forEach((angle, electronIndex) => {
+                        // 각도 업데이트
+                        electronAngles[shellIndex][electronIndex] = (angle + rotationSpeed) % (Math.PI * 2);
+                        
+                        // 전자 위치 계산
+                        const electronX = centerX + radius * Math.cos(angle);
+                        const electronY = centerY + radius * Math.sin(angle);
 
-                    // 전자 그리기
-                    ctx.beginPath();
-                    ctx.arc(electronX, electronY, nucleusRadius * 0.1, 0, Math.PI * 2);
-                    ctx.fillStyle = '#3498DB'; // 파란색 전자
-                    ctx.fill();
+                        // 전자 그리기 (그림자 효과)
+                        ctx.shadowColor = 'rgba(52, 152, 219, 0.5)';
+                        ctx.shadowBlur = 8;
+                        ctx.beginPath();
+                        ctx.arc(electronX, electronY, electronSize, 0, Math.PI * 2);
+                        ctx.fillStyle = '#3498DB';
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                        
+                        // 전자 테두리
+                        ctx.strokeStyle = '#2980B9';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    });
                 }
             });
 
-            // 3. 원소 정보 업데이트
-            const infoHTML = `
-                <p><strong>원소명:</strong> ${element.name} (${element.symbol})</p>
-                <p><strong>원자 번호 (Z):</strong> ${element.Z}</p>
-                <p><strong>양성자/전자 수:</strong> ${protons}개</p>
-                <p><strong>중성자 수:</strong> ${neutrons}개 (근사)</p>
-                <p><strong>전자 껍질:</strong> ${element.shells.join(', ')}</p>
-            `;
-            atomInfo.innerHTML = infoHTML;
+            // 다음 프레임 요청
+            animationFrameId = requestAnimationFrame(animateAtom);
         }
 
         // --- 2. 주기율표 상호작용 설정 ---
@@ -661,9 +1020,21 @@
             const initialElement = elements["H"];
             if (initialElement) {
                 highlightElement("H");
-                drawAtom(initialElement);
+                // 약간의 지연을 주어 DOM이 완전히 로드된 후 스펙트럼을 그리기
+                setTimeout(() => {
+                    drawAtom(initialElement);
+                }, 100);
             }
         }
+        
+        // 페이지 로드 완료 후 스펙트럼 Canvas 초기화
+        window.addEventListener('load', () => {
+            resizeSpectrumCanvas();
+            const initialElement = elements["H"];
+            if (initialElement && spectrumCanvas) {
+                drawSpectrum(initialElement.spectrum || []);
+            }
+        });
 
 
         // --- 3. 검색 기능 ---
@@ -723,4 +1094,5 @@
         window.addEventListener('load', setupInteractions);
     </script>
 </body>
+</html>
 </html>
