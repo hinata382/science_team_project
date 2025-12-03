@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚛️ 보어 모형 퀴즈 게임 - 메인</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #e0f2fe; /* Light Blue background */
+            font-family: 'Inter', sans-serif;
+        }
+        .container {
+            background-color: white;
+            padding: 3rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        .start-button {
+            transition: all 0.3s ease;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed); /* Indigo to Violet */
+            box-shadow: 0 4px #4338ca; /* Darker Indigo shadow */
+        }
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px #4338ca;
+        }
+        .start-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px #4338ca;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="container w-full max-w-lg text-center">
+        <h1 class="text-5xl font-extrabold text-gray-800 mb-4">
+            ⚛️ 원소 보어 모형 퀴즈
+        </h1>
+        <p class="text-xl text-gray-600 mb-8">
+            전자 배치 모형을 보고 원소 기호를 맞혀보세요!
+        </p>
+
+        <!-- 게임 페이지로 이동하는 버튼 -->
+        <a href="game_page.html" 
+           class="start-button inline-block text-white py-4 px-12 rounded-xl text-2xl font-bold uppercase tracking-wider">
+            게임 시작!
+        </a>
+
+        <p class="mt-8 text-sm text-gray-500">
+            * 이 게임은 서버(app.py)가 5001 포트에서 실행 중일 때 작동합니다.
+        </p>
+    </div>
+</body>
+</html>

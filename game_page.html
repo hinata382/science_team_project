@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚛️ 보어 모형 원소 퀴즈</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the app */
+        #bohrCanvas {
+            border-radius: 1rem;
+            box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(145deg, #e0e7ff, #ffffff);
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* 오류 수정: @apply 대신 표준 CSS 속성을 사용했습니다.
+           (flex, p-3, rounded-xl, shadow-lg, transition duration-300, hover:scale-[1.02]에 해당)
+        */
+        .score-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            transition: all 300ms ease-in-out;
+        }
+        .score-box:hover {
+            transform: scale(1.02);
+        }
+
+        .correct {
+            border: 3px solid #10b981; /* green-500 */
+        }
+        .incorrect {
+            border: 3px solid #ef4444; /* red-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4 font-sans">
+
+    <!-- 홈 버튼 (메인 메뉴로 돌아가기) -->
+    <a href="main_menu.html" class="absolute top-4 left-4 text-indigo-600 hover:text-indigo-800 font-semibold flex items-center">
+        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8m-1-12a9 9 0 019 9 9 9 0 01-9 9 9 9 0 01-9-9 9 9 0 019-9z"></path></svg>
+        메인 메뉴
+    </a>
+
+    <div class="w-full max-w-xl bg-white shadow-2xl rounded-3xl p-6 md:p-8 space-y-6">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 text-center">
+            ⚛️ 보어 모형 원소 퀴즈
+        </h1>
+        
+        <!-- Game Stats -->
+        <div class="flex justify-around gap-4 text-center">
+            <div class="score-box bg-indigo-50 text-indigo-700 w-1/2">
+                <span class="text-lg font-bold">점수: </span>
+                <span id="scoreDisplay" class="text-2xl ml-2 font-extrabold">0</span>
+            </div>
+            <div class="score-box bg-gray-50 text-gray-700 w-1/2">
+                <span class="text-lg font-bold">라운드: </span>
+                <span id="roundDisplay" class="text-2xl ml-2 font-extrabold">0</span>
+            </div>
+        </div>
+
+        <!-- Question Area -->
+        <div id="questionArea" class="space-y-4">
+            <h2 id="questionText" class="text-xl font-semibold text-center text-gray-700">게임을 시작하려면 아래 버튼을 눌러주세요!</h2>
+            
+            <!-- Canvas for Bohr Model -->
+            <div class="flex justify-center items-center p-4 bg-white rounded-xl">
+                <canvas id="bohrCanvas" width="350" height="350" class="border-4 border-gray-200"></canvas>
+            </div>
+            
+            <!-- Answer Input -->
+            <div id="answerInputGroup" class="flex gap-3 pt-2 hidden">
+                <input type="text" id="answerInput" placeholder="원소 기호 입력 (예: C, O, Na)" class="flex-grow p-3 border-2 border-gray-300 rounded-lg text-lg uppercase focus:outline-none focus:border-indigo-500 transition duration-150" maxlength="2" onkeydown="if(event.key === 'Enter') checkAnswer()">
+                <button onclick="checkAnswer()" id="submitButton" class="bg-indigo-600 text-white p-3 rounded-lg font-bold hover:bg-indigo-700 transition duration-150 shadow-md">
+                    정답 확인
+                </button>
+            </div>
+            
+            <!-- Start/Next Button -->
+            <button onclick="startGame()" id="startButton" class="w-full bg-green-500 text-white p-4 rounded-lg font-extrabold text-xl hover:bg-green-600 transition duration-150 shadow-lg">
+                게임 시작
+            </button>
+        </div>
+
+        <!-- Feedback & Reveal Area -->
+        <div id="feedback" class="text-center font-bold text-lg pt-4"></div>
+        
+        <!-- Element Details (Hidden until answer is revealed) -->
+        <div id="elementReveal" class="p-4 bg-indigo-50 rounded-xl border-l-4 border-indigo-500 hidden">
+            <h3 class="text-xl font-bold text-indigo-800 mb-2">원소 정보 (정답)</h3>
+            <p id="revealDetails" class="text-gray-700"></p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:5001/api/element/';
+        
+        // 퀴즈에 사용할 원소 목록 (H, Li부터 Kr까지 일부)
+        const QUIZ_ELEMENTS = [
+            'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
+            'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar',
+            'K', 'Ca', 'Fe', 'Cu', 'Zn', 'Br', 'Kr'
+        ];
+
+        let score = 0;
+        let round = 0;
+        let currentElementData = null;
+        let isGameRunning = false;
+
+        const canvas = document.getElementById('bohrCanvas');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width;
+        const H = canvas.height;
+        const centerX = W / 2;
+        const centerY = H / 2;
+        
+        // DOM 요소 캐시
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const roundDisplay = document.getElementById('roundDisplay');
+        const questionText = document.getElementById('questionText');
+        const answerInput = document.getElementById('answerInput');
+        const submitButton = document.getElementById('submitButton');
+        const startButton = document.getElementById('startButton');
+        const answerInputGroup = document.getElementById('answerInputGroup');
+        const feedback = document.getElementById('feedback');
+        const elementReveal = document.getElementById('elementReveal');
+        const revealDetails = document.getElementById('revealDetails');
+
+
+        // --- 유틸리티 함수 ---
+
+        // 지수 백오프를 이용한 API 호출 함수 (app.py와의 통신)
+        async function fetchWithRetry(url, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        if (response.status === 404) throw new Error("Element data not found (404)");
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    if (error.message.includes("404")) throw error;
+                    // 서버 오류 또는 연결 오류 시 재시도
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 500;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+            throw new Error(`Failed to fetch ${url} after ${maxRetries} attempts.`);
+        }
+
+
+        // --- 캔버스 그리기 함수 ---
+
+        function drawBohrModel(electronShells, totalElectrons, elementSymbol, isRevealed = false) {
+            ctx.clearRect(0, 0, W, H);
+            
+            // 핵(원자 번호) 그리기
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 20, 0, Math.PI * 2);
+            ctx.fillStyle = isRevealed ? '#10b981' : '#ef4444'; 
+            ctx.fill();
+            ctx.strokeStyle = '#991b1b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 핵 내부 텍스트 
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(totalElectrons, centerX, centerY);
+            
+            const maxRadius = 150;
+            const shellCount = electronShells.length;
+
+            // 껍질 그리기
+            electronShells.forEach((electrons, index) => {
+                const shellIndex = index + 1; 
+                const radius = (maxRadius / shellCount) * shellIndex; 
+                
+                // 궤도 그리기
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = '#9ca3af'; 
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                if (electrons === 0) return;
+
+                // 전자 그리기
+                for (let i = 0; i < electrons; i++) {
+                    const angle = (i / electrons) * Math.PI * 2;
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#1e40af';
+                    ctx.fill();
+                    ctx.strokeStyle = '#1e3a8a';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            });
+        }
+        
+        // 캔버스 초기화 메시지
+        function drawInitialMessage(message) {
+            ctx.clearRect(0, 0, W, H);
+            ctx.fillStyle = '#6b7280';
+            ctx.font = 'bold 20px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(message, centerX, centerY);
+        }
+
+        // --- 게임 로직 함수 ---
+
+        /**
+         * 게임 초기화 및 시작
+         */
+        function startGame() {
+            score = 0;
+            round = 0;
+            isGameRunning = true;
+            updateStats();
+            
+            startButton.onclick = loadNextQuestion;
+            startButton.textContent = '다음 문제 시작';
+            startButton.classList.replace('bg-green-500', 'bg-indigo-600');
+            answerInputGroup.classList.remove('hidden');
+            feedback.textContent = '';
+            elementReveal.classList.add('hidden');
+            answerInput.classList.remove('correct', 'incorrect');
+            answerInput.disabled = false;
+            submitButton.disabled = false;
+            
+            loadNextQuestion();
+        }
+
+        /**
+         * 다음 문제를 로드합니다.
+         */
+        async function loadNextQuestion() {
+            if (!isGameRunning) return;
+
+            round++;
+            updateStats();
+            
+            // UI 초기화
+            feedback.textContent = '원소 기호를 입력하고 정답을 확인하세요.';
+            elementReveal.classList.add('hidden');
+            answerInput.value = '';
+            answerInput.classList.remove('correct', 'incorrect');
+            answerInput.disabled = false;
+            submitButton.disabled = false;
+            startButton.classList.add('hidden'); // '다음 문제' 버튼 숨기기
+            questionText.textContent = '이 보어 모형이 나타내는 원소는 무엇일까요?';
+            
+            try {
+                // 무작위 원소 선택
+                const randomIndex = Math.floor(Math.random() * QUIZ_ELEMENTS.length);
+                const randomSymbol = QUIZ_ELEMENTS[randomIndex];
+
+                // 서버에서 데이터 가져오기
+                const data = await fetchWithRetry(`${API_BASE_URL}${randomSymbol}`);
+                currentElementData = data;
+                
+                // 보어 모형 그리기
+                drawBohrModel(data.electron_shells, data.total_electrons, data.symbol);
+
+            } catch (error) {
+                console.error("Quiz Load Error:", error);
+                drawInitialMessage('데이터 로드 오류');
+                questionText.textContent = `오류: 서버 연결 또는 데이터 문제가 발생했습니다. (Console 확인)`;
+                currentElementData = null;
+                isGameRunning = false;
+                startButton.textContent = '게임 재시작';
+                startButton.classList.replace('bg-indigo-600', 'bg-green-500');
+                startButton.classList.remove('hidden');
+            }
+        }
+        
+        /**
+         * 사용자의 정답을 확인합니다.
+         */
+        function checkAnswer() {
+            if (!isGameRunning || !currentElementData || submitButton.disabled) return;
+
+            const userAnswer = answerInput.value.trim().toUpperCase();
+            const correctAnswer = currentElementData.symbol.toUpperCase();
+            
+            answerInput.disabled = true;
+            submitButton.disabled = true;
+            startButton.classList.remove('hidden'); // '다음 문제' 버튼 표시
+
+            if (userAnswer === correctAnswer) {
+                // 정답!
+                score++;
+                feedback.innerHTML = `<span class="text-green-600">🎉 정답입니다! (${currentElementData.symbol})</span>`;
+                answerInput.classList.add('correct');
+                drawBohrModel(currentElementData.electron_shells, currentElementData.total_electrons, currentElementData.symbol, true);
+            } else {
+                // 오답!
+                feedback.innerHTML = `<span class="text-red-600">❌ 틀렸습니다. 정답은 ${currentElementData.symbol} (${currentElementData.name}) 입니다.</span>`;
+                answerInput.classList.add('incorrect');
+            }
+            
+            updateStats();
+            revealAnswerDetails();
+        }
+
+        /**
+         * 점수와 라운드 수를 업데이트합니다.
+         */
+        function updateStats() {
+            scoreDisplay.textContent = score;
+            roundDisplay.textContent = round;
+        }
+
+        /**
+         * 정답 원소의 상세 정보를 표시합니다.
+         */
+        function revealAnswerDetails() {
+            if (!currentElementData) return;
+            
+            elementReveal.classList.remove('hidden');
+            revealDetails.innerHTML = `
+                <p><strong>원자 번호:</strong> ${currentElementData.total_electrons}</p>
+                <p><strong>주기:</strong> ${currentElementData.period}주기, <strong>족:</strong> ${currentElementData.group}족</p>
+                <p><strong>전자 배치:</strong> ${currentElementData.electron_shells.join(', ')}</p>
+            `;
+        }
+
+        // 초기 로드 시 캔버스에 안내 메시지 그리기
+        window.onload = () => {
+            drawInitialMessage('게임 시작 버튼을 누르세요!');
+        };
+
+    </script>
+</body>
+</html>
